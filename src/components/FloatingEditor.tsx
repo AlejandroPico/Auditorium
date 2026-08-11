@@ -100,7 +100,7 @@ export function FloatingEditor() {
   const nodeId = useStudioStore((state) => state.detailNodeId);
   const closeDetail = useStudioStore((state) => state.closeDetail);
   const node = findNodeInProject(project, nodeId);
-  const [position, setPosition] = useState({ x: 96, y: 86 });
+  const [position, setPosition] = useState({ x: 96, y: 26 });
   const [maximized, setMaximized] = useState(false);
   const drag = useRef<{ x: number; y: number } | null>(null);
   if (!node) return null;
@@ -113,11 +113,18 @@ export function FloatingEditor() {
   const pointerDown = (event: React.PointerEvent) => {
     if (maximized) return;
     event.currentTarget.setPointerCapture(event.pointerId);
-    drag.current = { x: event.clientX - position.x, y: event.clientY - position.y };
+    const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+    drag.current = {
+      x: event.clientX - (bounds?.left ?? position.x),
+      y: event.clientY - (bounds?.top ?? position.y + 58),
+    };
   };
   const pointerMove = (event: React.PointerEvent) => {
     if (!drag.current) return;
-    setPosition({ x: Math.max(0, event.clientX - drag.current.x), y: Math.max(60, event.clientY - drag.current.y) });
+    setPosition({
+      x: Math.max(0, event.clientX - drag.current.x),
+      y: Math.max(0, event.clientY - 58 - drag.current.y),
+    });
   };
   const pointerUp = () => { drag.current = null; };
 
