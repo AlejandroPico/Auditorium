@@ -93,6 +93,12 @@ export const ModuleNode = memo(({ id, data, selected }: NodeProps<StudioNode>) =
     <div
       className={`module-node ${definition.wide ? 'is-wide' : ''} ${selected ? 'is-selected' : ''} ${disabled ? 'is-bypassed' : ''}`}
       style={{ '--module-color': data.color } as React.CSSProperties}
+      onPointerDown={(event) => {
+        if (event.detail === 2) {
+          event.stopPropagation();
+          openNode(id);
+        }
+      }}
       onDoubleClick={(event) => { event.stopPropagation(); openNode(id); }}
     >
       <NodeToolbar className="node-toolbar" isVisible={selected} position={Position.Top}>
