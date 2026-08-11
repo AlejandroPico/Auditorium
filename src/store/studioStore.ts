@@ -145,6 +145,7 @@ interface StudioState {
   isPlaying: boolean;
   isRecording: boolean;
   performanceMode: boolean;
+  showMinimap: boolean;
   leftOpen: boolean;
   rightOpen: boolean;
   bottomOpen: boolean;
@@ -179,6 +180,7 @@ interface StudioState {
   setPanel: (panel: 'left' | 'right' | 'bottom', open: boolean) => void;
   setBottomTab: (tab: StudioState['bottomTab']) => void;
   setPerformanceMode: (enabled: boolean) => void;
+  setShowMinimap: (enabled: boolean) => void;
   setWelcome: (show: boolean) => void;
   setStatus: (status: string) => void;
   loadProject: (project: AuditoriumProject) => void;
@@ -224,6 +226,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   isPlaying: false,
   isRecording: false,
   performanceMode: false,
+  showMinimap: true,
   leftOpen: true,
   rightOpen: true,
   bottomOpen: true,
@@ -391,6 +394,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   setPanel: (panel, open) => set(panel === 'left' ? { leftOpen: open } : panel === 'right' ? { rightOpen: open } : { bottomOpen: open }),
   setBottomTab: (bottomTab) => set({ bottomTab, bottomOpen: true }),
   setPerformanceMode: (performanceMode) => set({ performanceMode, leftOpen: !performanceMode, rightOpen: !performanceMode, bottomOpen: !performanceMode }),
+  setShowMinimap: (showMinimap) => set({ showMinimap }),
   setWelcome: (showWelcome) => {
     set({ showWelcome });
   },

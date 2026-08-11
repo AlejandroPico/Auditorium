@@ -1,4 +1,4 @@
-import type { InstrumentPreset } from '../types';
+import type { InstrumentPreset, InstrumentProfile } from '../types';
 
 interface InstrumentGroup {
   family: string;
@@ -51,6 +51,24 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
 
+const profileForFamily = (family: string): InstrumentProfile => {
+  if (family === 'Pianos y teclas') return 'hammered';
+  if (family === 'Órganos y armonios') return 'organ';
+  if (['Guitarras', 'Laúdes y pulsadas', 'Arpas y cítaras', 'India y Asia central', 'América tradicional'].includes(family)) return 'plucked';
+  if (family === 'Bajos') return 'bass';
+  if (family.includes('Cuerdas')) return 'bowed';
+  if (family === 'Flautas') return 'flute';
+  if (['Maderas', 'Vientos tradicionales', 'Música antigua', 'Instrumentos ibéricos', 'Asia oriental'].includes(family)) return 'reed';
+  if (family === 'Metales') return 'brass';
+  if (family === 'Percusión afinada') return 'mallet';
+  if (family.includes('Percusión') || family.includes('Tambores') || family.includes('Baterías')) return 'drum';
+  if (family === 'Coro y voces') return 'voice';
+  if (family === 'Sintetizadores analógicos' || family === 'Leads y plucks') return 'analog';
+  if (family === 'Sintetizadores digitales') return 'digital';
+  if (family === 'Pads y atmósferas') return 'pad';
+  return 'texture';
+};
+
 export const instruments: InstrumentPreset[] = groups.flatMap((group, groupIndex) =>
   group.names.map((name, index) => ({
     id: `${slugify(name)}-${groupIndex}-${index}`,
@@ -64,6 +82,8 @@ export const instruments: InstrumentPreset[] = groups.flatMap((group, groupIndex
     filter: group.filter * (0.9 + (index % 3) * 0.08),
     detune: index % 6 === 0 ? 5 : 0,
     brightness: Math.min(100, group.brightness + ((index % 7) - 3) * 2),
+    profile: profileForFamily(group.family),
+    variation: (groupIndex * 20 + index) % 97,
   })),
 );
 

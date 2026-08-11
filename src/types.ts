@@ -50,6 +50,11 @@ export interface NoteEvent {
   pitch: number;
   velocity: number;
   length: number;
+  rest?: boolean;
+  dotted?: boolean;
+  tie?: boolean;
+  accidental?: 'sharp' | 'flat' | 'natural';
+  articulation?: 'normal' | 'staccato' | 'tenuto' | 'accent';
 }
 
 export interface ModuleData extends Record<string, unknown> {
@@ -65,6 +70,7 @@ export interface ModuleData extends Record<string, unknown> {
   workspaceId?: string;
   sequence?: NoteEvent[];
   drumPattern?: boolean[];
+  scoreMeasures?: number;
 }
 
 export type StudioNode = Node<ModuleData, 'auditorium'>;
@@ -113,7 +119,26 @@ export interface InstrumentPreset {
   filter: number;
   detune?: number;
   brightness: number;
+  profile: InstrumentProfile;
+  variation: number;
 }
+
+export type InstrumentProfile =
+  | 'hammered'
+  | 'organ'
+  | 'plucked'
+  | 'bass'
+  | 'bowed'
+  | 'flute'
+  | 'reed'
+  | 'brass'
+  | 'mallet'
+  | 'drum'
+  | 'voice'
+  | 'analog'
+  | 'digital'
+  | 'pad'
+  | 'texture';
 
 export interface AddModuleOptions {
   definition: ModuleDefinition;

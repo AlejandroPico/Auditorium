@@ -92,7 +92,9 @@ function DownloadMenu({ close }: { close: () => void }) {
 function SettingsMenu({ close }: { close: () => void }) {
   const project = useStudioStore((state) => state.project);
   const performanceMode = useStudioStore((state) => state.performanceMode);
+  const showMinimap = useStudioStore((state) => state.showMinimap);
   const setPerformanceMode = useStudioStore((state) => state.setPerformanceMode);
+  const setShowMinimap = useStudioStore((state) => state.setShowMinimap);
   const setMasterGain = useStudioStore((state) => state.setMasterGain);
   const setStatus = useStudioStore((state) => state.setStatus);
   return (
@@ -102,6 +104,7 @@ function SettingsMenu({ close }: { close: () => void }) {
       <div className="settings-row"><span><b>Frecuencia</b><small>Motor de audio</small></span><strong>{audioEngine.audioContext?.sampleRate ? `${audioEngine.audioContext.sampleRate / 1000} kHz` : '48 kHz'}</strong></div>
       <div className="settings-row"><span><b>Precisión interna</b><small>Grafo y sumadores</small></span><strong>32-bit float</strong></div>
       <label className="settings-toggle"><span><b>Modo actuación</b><small>Oculta paneles, conserva controles</small></span><input type="checkbox" checked={performanceMode} onChange={(event) => setPerformanceMode(event.target.checked)} /><i /></label>
+      <label className="settings-toggle"><span><b>Minimapa</b><small>Vista general navegable del lienzo</small></span><input type="checkbox" checked={showMinimap} onChange={(event) => setShowMinimap(event.target.checked)} /><i /></label>
       <button className="device-test" onClick={async () => { try { await audioEngine.init(); setStatus(`Motor activo · ${audioEngine.audioContext?.sampleRate ?? 48000} Hz · latencia interactiva`); } catch (error) { setStatus(String(error)); } }}><Zap size={14} />Probar motor de audio</button>
       <footer><Gauge size={13} />Latencia estimada por el sistema: {audioEngine.audioContext ? `${((audioEngine.audioContext.baseLatency ?? 0.006) * 1000).toFixed(1)} ms` : '—'}</footer>
     </div>
@@ -110,21 +113,19 @@ function SettingsMenu({ close }: { close: () => void }) {
 
 function AboutMenu({ close }: { close: () => void }) {
   return (
-    <div className="top-popover about-popover">
-      <header>
-        <div><span className="eyebrow">Acerca de</span><strong>Auditorium 0.1.0</strong></div>
-        <button onClick={close} aria-label="Cerrar Acerca de"><X size={14} /></button>
-      </header>
-      <div className="about-brand">
-        <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" />
-        <div><strong>El estudio que crece con tu sonido.</strong><p>Composición, mezcla, interpretación y diseño sonoro en un único lienzo modular.</p></div>
-      </div>
-      <div className="about-facts">
-        <span><b>Sesiones privadas</b><small>Autoguardado local en este dispositivo</small></span>
-        <span><b>Motor Web Audio</b><small>Procesamiento en tiempo real y MIDI</small></span>
-        <span><b>Escritorio multiplataforma</b><small>Windows, macOS y Linux con Tauri</small></span>
-      </div>
-      <a href="https://github.com/AlejandroPico/Auditorium" target="_blank" rel="noreferrer">Ver proyecto en GitHub <ExternalLink size={13} /></a>
+    <div className="about-dialog" role="dialog" aria-modal="true" aria-labelledby="about-title">
+      <button className="about-scrim" aria-label="Cerrar Acerca de Auditorium" onClick={close} />
+      <section className="about-popover">
+        <button className="about-close" onClick={close} aria-label="Cerrar Acerca de"><X size={18} /></button>
+        <span className="about-index" aria-hidden="true">AU—01</span>
+        <div className="about-intro">
+          <div className="about-heading"><span className="eyebrow">Sobre Auditorium</span><h2 id="about-title">Todo un estudio musical dentro de un lienzo.</h2><p>Composición, interpretación, mezcla y diseño sonoro forman un único instrumento modular.</p></div>
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" />
+        </div>
+        <div className="about-copy"><p><strong>Auditorium</strong> nace como un entorno profesional abierto para construir el estudio que cada obra necesita: desde una partitura y un piano hasta platos, síntesis, dinámica multibanda y cadenas de efectos encapsuladas.</p><p>El proyecto ha sido creado por <strong>Alejandro Pico Perez</strong> como una exploración técnica y creativa. Las sesiones permanecen en el dispositivo y la edición web comparte su base con las aplicaciones de Windows, macOS y Linux.</p></div>
+        <div className="about-facts"><span><b>Lienzo modular</b><small>Grafo anidable y señal en tiempo real</small></span><span><b>Biblioteca instrumental</b><small>560 voces con perfiles sonoros propios</small></span><span><b>Proyecto abierto</b><small>React, TypeScript, Web Audio y Tauri</small></span></div>
+        <nav className="about-links" aria-label="Enlaces del proyecto"><a href="https://alejandropico.github.io/Portfolio/" target="_blank" rel="noreferrer"><span><small>Conocer al autor</small>Porfolio de Alejandro Pico</span><ExternalLink size={17} /></a><a href="https://github.com/AlejandroPico/Auditorium" target="_blank" rel="noreferrer"><span><small>Proyecto abierto</small>Código de Auditorium en GitHub</span><ExternalLink size={17} /></a></nav>
+      </section>
     </div>
   );
 }
@@ -223,7 +224,7 @@ export function TopBar() {
         <div className="utility-cluster">
           <button onClick={enableMidi} title="MIDI y hardware"><Mic2 size={14} /></button>
           <button className={popover === 'settings' ? 'active' : ''} onClick={() => setPopover(popover === 'settings' ? null : 'settings')} title="Ajustes"><Settings size={14} /></button>
-          <button className={`about-button ${popover === 'about' ? 'active' : ''}`} onClick={() => setPopover(popover === 'about' ? null : 'about')}><Info size={13} /><span>Acerca de</span></button>
+          <button className={`about-button ${popover === 'about' ? 'active' : ''}`} title="Acerca de Auditorium" aria-label="Acerca de Auditorium" onClick={() => setPopover(popover === 'about' ? null : 'about')}><Info size={14} /></button>
           <button className="download-button" onClick={() => setPopover(popover === 'download' ? null : 'download')}><CloudDownload size={14} /><span>Descargar</span></button>
         </div>
       </div>

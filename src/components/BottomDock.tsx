@@ -9,9 +9,10 @@ import {
   Piano,
   Search,
   SlidersVertical,
+  Upload,
   Volume2,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { audioEngine } from '../audio/AudioEngine';
 import { instrumentFamilies, instruments } from '../data/instruments';
 import { selectActiveWorkspace, useStudioStore } from '../store/studioStore';
@@ -137,13 +138,74 @@ function ScoreView() {
   return <ScoreEditor node={sequenceNode} />;
 }
 
+interface SessionMediaItem {
+  id: string;
+  file: File;
+  name: string;
+  format: string;
+  duration?: number;
+  sampleRate?: number;
+  channels?: number;
+}
+
+const sessionMedia = new Map<string, SessionMediaItem>();
+const audioExtensions = /\.(mp3|wav|flac|aiff?|aac|m4a|ogg|opus|wma|caf|au|mid|midi)$/i;
+
 function FilesView() {
   const workspace = useStudioStore(selectActiveWorkspace);
-  const media = workspace.nodes.filter((node) => node.data.fileName);
+  const projectMedia = workspace.nodes.filter((node) => node.data.fileName);
+  const [media, setMedia] = useState<SessionMediaItem[]>(() => Array.from(sessionMedia.values()));
+  const [query, setQuery] = useState('');
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const setStatus = useStudioStore((state) => state.setStatus);
+  const visible = media.filter((item) => item.name.toLocaleLowerCase('es').includes(query.toLocaleLowerCase('es')));
+
+  const ingest = async (files: File[]) => {
+    const accepted = files.filter((file) => file.type.startsWith('audio/') || audioExtensions.test(file.name));
+    if (!accepted.length) { setStatus('La selección no contenía archivos de audio compatibles'); return; }
+    setBusy(true);
+    const items: SessionMediaItem[] = [];
+    for (const file of accepted.slice(0, 1500)) {
+      const id = `${file.name}-${file.size}-${file.lastModified}`;
+      const item: SessionMediaItem = { id, file, name: file.name, format: file.name.split('.').pop()?.toUpperCase() ?? 'AUDIO' };
+      try { Object.assign(item, await audioEngine.inspectAudioFile(file)); } catch { /* formatos que el navegador no decodifica siguen catalogados */ }
+      sessionMedia.set(id, item); items.push(item);
+    }
+    setMedia(Array.from(sessionMedia.values()));
+    setBusy(false); setStatus(`${items.length} medios añadidos a la biblioteca de esta sesión`);
+  };
+
+  const openDirectory = async () => {
+    type Entry = { kind: 'file' | 'directory'; getFile?: () => Promise<File>; values?: () => AsyncIterable<Entry> };
+    const picker = (window as typeof window & { showDirectoryPicker?: () => Promise<Entry> }).showDirectoryPicker;
+    if (!picker) { folderInputRef.current?.click(); return; }
+    try {
+      const root = await picker(); const files: File[] = [];
+      const walk = async (entry: Entry) => {
+        if (entry.kind === 'file' && entry.getFile) files.push(await entry.getFile());
+        else if (entry.values) for await (const child of entry.values()) await walk(child);
+      };
+      await walk(root); await ingest(files);
+    } catch (error) { if (error instanceof DOMException && error.name === 'AbortError') return; setStatus('No se pudo abrir esa carpeta'); }
+  };
+
+  const preview = (item: SessionMediaItem) => {
+    const url = URL.createObjectURL(item.file); const player = new Audio(url);
+    player.volume = 0.72; void player.play(); player.onended = () => URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 120000);
+    setStatus(`Escuchando ${item.name}`);
+  };
   return (
     <div className="files-view">
-      <aside><strong><FileAudio size={15} />Colecciones</strong><button className="active">Archivos del proyecto <span>{media.length}</span></button><button>Grabaciones <span>0</span></button><button>Favoritos <span>0</span></button></aside>
-      <div className="file-table"><header><span>Nombre</span><span>Formato</span><span>Duración</span><span>Frecuencia</span><span>Uso</span></header>{media.map((node) => <div key={node.id}><span><i><FileAudio size={14} /></i><b>{String(node.data.fileName)}</b></span><span>{String(node.data.fileName).split('.').pop()?.toUpperCase()}</span><span>—</span><span>48 kHz</span><span>{String(node.data.label)}</span></div>)}{!media.length && <section><FolderOpen size={24} /><strong>No hay medios importados</strong><p>Carga un archivo desde una platina o sampler.</p></section>}</div>
+      <aside><strong><FileAudio size={15} />Biblioteca</strong><button className="active">Carpetas locales <span>{media.length}</span></button><button>Archivos del proyecto <span>{projectMedia.length}</span></button><button>Grabaciones <span>0</span></button><small>Los permisos de carpetas son privados y se conceden desde tu dispositivo.</small></aside>
+      <div className="media-browser">
+        <div className="media-actions"><button onClick={openDirectory}><FolderOpen size={14} />Abrir carpeta</button><button onClick={() => inputRef.current?.click()}><Upload size={14} />Añadir archivos</button><label><Search size={13} /><input placeholder="Buscar en la biblioteca…" value={query} onChange={(event) => setQuery(event.target.value)} /></label><span>{busy ? 'Analizando audio…' : `${visible.length} archivos`}</span></div>
+        <input className="visually-hidden" ref={inputRef} type="file" accept="audio/*,.flac,.aiff,.aif,.wma,.caf,.au,.mid,.midi" multiple onChange={(event) => void ingest(Array.from(event.target.files ?? []))} />
+        <input className="visually-hidden" ref={folderInputRef} type="file" accept="audio/*" multiple {...({ webkitdirectory: '' } as React.InputHTMLAttributes<HTMLInputElement>)} onChange={(event) => void ingest(Array.from(event.target.files ?? []))} />
+        <div className="file-table"><header><span>Nombre</span><span>Formato</span><span>Duración</span><span>Frecuencia</span><span>Escucha</span></header>{visible.map((item) => <div key={item.id}><span><i><FileAudio size={14} /></i><b>{item.name}</b></span><span>{item.format}</span><span>{item.duration ? `${Math.floor(item.duration / 60)}:${String(Math.floor(item.duration % 60)).padStart(2, '0')}` : 'Sin decodificar'}</span><span>{item.sampleRate ? `${(item.sampleRate / 1000).toFixed(1)} kHz · ${item.channels} ch` : '—'}</span><span><button title={`Escuchar ${item.name}`} onClick={() => preview(item)}><Volume2 size={13} /></button></span></div>)}{!visible.length && <section><FolderOpen size={24} /><strong>{media.length ? 'No hay coincidencias' : 'Abre tu biblioteca de audio'}</strong><p>Selecciona una carpeta o varios archivos MP3, WAV, FLAC, AIFF, AAC, OGG y otros formatos compatibles.</p><button onClick={openDirectory}><FolderOpen size={14} />Elegir carpeta</button></section>}</div>
+      </div>
     </div>
   );
 }

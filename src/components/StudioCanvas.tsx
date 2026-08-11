@@ -18,6 +18,7 @@ const nodeTypes: NodeTypes = { auditorium: ModuleNode };
 
 function CanvasInner() {
   const workspace = useStudioStore(selectActiveWorkspace);
+  const showMinimap = useStudioStore((state) => state.showMinimap);
   const project = useStudioStore((state) => state.project);
   const activeWorkspaceId = useStudioStore((state) => state.activeWorkspaceId);
   const onNodesChange = useStudioStore((state) => state.onNodesChange);
@@ -96,14 +97,19 @@ function CanvasInner() {
         colorMode="dark"
       >
         <Background variant={BackgroundVariant.Dots} gap={18} size={1.1} color="#27313e" />
-        <MiniMap
+        {showMinimap && <MiniMap
           position="bottom-right"
           nodeColor={(node) => String(node.data.color ?? '#718096')}
+          nodeStrokeColor={(node) => String(node.data.color ?? '#718096')}
+          nodeStrokeWidth={2}
+          nodeBorderRadius={4}
           maskColor="rgba(4, 6, 10, .74)"
+          maskStrokeColor="rgba(111, 212, 255, .55)"
+          maskStrokeWidth={1.5}
           pannable
           zoomable
           ariaLabel="Mapa general del lienzo"
-        />
+        />}
       </ReactFlow>
       {!workspace.nodes.length && (
         <div className="canvas-empty">

@@ -1,4 +1,4 @@
-import { Handle, NodeToolbar, Position, type NodeProps } from '@xyflow/react';
+import { Handle, NodeToolbar, Position, useViewport, type NodeProps } from '@xyflow/react';
 import {
   Activity,
   AudioWaveform,
@@ -18,10 +18,10 @@ import {
   X,
   Copy,
 } from 'lucide-react';
-import { memo } from 'react';
+import { memo, useRef } from 'react';
 import { getModuleDefinition } from '../../data/moduleCatalog';
 import { useStudioStore } from '../../store/studioStore';
-import type { StudioNode } from '../../types';
+import type { ParamDefinition, StudioNode } from '../../types';
 
 const iconByType: Record<string, typeof Waves> = {
   turntable: Disc3,
@@ -74,11 +74,38 @@ const MiniDisplay = ({ type, color, active }: { type: string; color: string; act
   if (type === 'output') {
     return <div className="node-master-meter"><i style={{ height: active ? '78%' : '32%' }} /><i style={{ height: active ? '68%' : '28%' }} /></div>;
   }
-  return <div className="node-knob-row">{[0, 1, 2].map((index) => <i key={index} style={{ '--knob-angle': `${-125 + index * 68}deg` } as React.CSSProperties} />)}</div>;
+  return null;
 };
+
+function NodeParameter({ nodeId, param, value, detailed }: { nodeId: string; param: ParamDefinition; value: number | string | boolean; detailed: boolean }) {
+  const updateNodeParam = useStudioStore((state) => state.updateNodeParam);
+  const drag = useRef<{ y: number; value: number } | null>(null);
+  const min = param.min ?? 0;
+  const max = param.max ?? 100;
+  const numeric = Number(value);
+  const ratio = max === min ? 0 : (numeric - min) / (max - min);
+  const setNumeric = (next: number) => {
+    const step = param.step ?? (max - min) / 100;
+    const clamped = Math.max(min, Math.min(max, next));
+    updateNodeParam(nodeId, param.key, Math.round(clamped / step) * step);
+  };
+  if (param.kind === 'toggle') return <button type="button" className={`node-param-switch nodrag ${value ? 'active' : ''}`} title={`${param.label}: ${value ? 'activado' : 'desactivado'}`} onClick={(event) => { event.stopPropagation(); updateNodeParam(nodeId, param.key, !value); }}><i />{detailed && <span>{param.label}</span>}</button>;
+  if (param.kind === 'select') return <button type="button" className="node-param-select nodrag" title={`${param.label}: ${String(value)}. Pulsa para cambiar.`} onClick={(event) => { event.stopPropagation(); const options = param.options ?? []; const index = options.indexOf(String(value)); updateNodeParam(nodeId, param.key, options[(index + 1) % options.length] ?? value); }}><b>{String(value).slice(0, 5)}</b>{detailed && <span>{param.label}</span>}</button>;
+  return (
+    <div className="node-param nodrag" title={`${param.label}: ${numeric}${param.unit ? ` ${param.unit}` : ''}. Arrastra verticalmente.`}
+      onPointerDown={(event) => { event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); drag.current = { y: event.clientY, value: numeric }; }}
+      onPointerMove={(event) => { if (!drag.current) return; event.stopPropagation(); setNumeric(drag.current.value + (drag.current.y - event.clientY) / 90 * (max - min)); }}
+      onPointerUp={(event) => { event.stopPropagation(); drag.current = null; }}
+      onDoubleClick={(event) => { event.stopPropagation(); setNumeric(Number(param.default)); }}>
+      <i className="node-param-knob" style={{ '--knob-angle': `${-135 + Math.max(0, Math.min(1, ratio)) * 270}deg` } as React.CSSProperties} />
+      {detailed && <><span>{param.label}</span><output>{Number.isFinite(numeric) ? numeric.toFixed(param.step && param.step < 1 ? 1 : 0) : String(value)}{param.unit ?? ''}</output></>}
+    </div>
+  );
+}
 
 export const ModuleNode = memo(({ id, data, selected }: NodeProps<StudioNode>) => {
   const definition = getModuleDefinition(data.moduleType);
+  const { zoom } = useViewport();
   const isPlaying = useStudioStore((state) => state.isPlaying);
   const openNode = useStudioStore((state) => state.openNode);
   const toggleNodeFlag = useStudioStore((state) => state.toggleNodeFlag);
@@ -125,6 +152,9 @@ export const ModuleNode = memo(({ id, data, selected }: NodeProps<StudioNode>) =
         />
       </header>
       <MiniDisplay type={data.moduleType} color={data.color} active={isPlaying && !disabled} />
+      {!!definition.params.length && <div className={`node-param-grid ${zoom >= 0.92 ? 'is-detailed' : ''}`}>
+        {definition.params.map((param) => <NodeParameter key={param.key} nodeId={id} param={param} value={data.params[param.key] ?? param.default} detailed={zoom >= 0.92} />)}
+      </div>}
       <footer className="module-node-footer">
         <span>{definition.category}</span>
         <div className="module-flags">

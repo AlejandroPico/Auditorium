@@ -60,8 +60,11 @@ function AnalyzerLab({ node }: { node: StudioNode }) {
 function ComposerLab({ node }: { node: StudioNode }) {
   const [mode, setMode] = useState<'roll' | 'score'>('roll');
   const instrument = node.data.instrumentId ? instrumentById.get(node.data.instrumentId) : undefined;
-  const whiteNotes = [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84];
-  const blackNotes = [{ pitch: 61, left: 4.8 }, { pitch: 63, left: 11.5 }, { pitch: 66, left: 24.8 }, { pitch: 68, left: 31.5 }, { pitch: 70, left: 38.2 }, { pitch: 73, left: 51.5 }, { pitch: 75, left: 58.2 }, { pitch: 78, left: 71.5 }, { pitch: 80, left: 78.2 }, { pitch: 82, left: 84.9 }];
+  const whiteNotes = Array.from({ length: 49 }, (_, index) => 48 + index).filter((pitch) => ![1, 3, 6, 8, 10].includes(pitch % 12));
+  const blackNotes = Array.from({ length: 48 }, (_, index) => 49 + index).filter((pitch) => [1, 3, 6, 8, 10].includes(pitch % 12)).map((pitch) => {
+    const whiteBefore = whiteNotes.filter((white) => white < pitch).length;
+    return { pitch, left: (whiteBefore / whiteNotes.length) * 100 - 50 / whiteNotes.length };
+  });
   return (
     <div className="composer-lab">
       <header className="composer-header">
@@ -69,7 +72,7 @@ function ComposerLab({ node }: { node: StudioNode }) {
         <nav><button className={mode === 'roll' ? 'active' : ''} onClick={() => setMode('roll')}>Piano roll</button><button className={mode === 'score' ? 'active' : ''} onClick={() => setMode('score')}>Partitura</button></nav>
       </header>
       <div className="playable-keyboard">
-        {whiteNotes.map((pitch) => <button key={pitch} onPointerDown={() => audioEngine.triggerExternal(node.id, pitch, 0.82, 0.8)}><span>{pitch === 60 ? 'C4' : pitch === 72 ? 'C5' : pitch === 84 ? 'C6' : ''}</span></button>)}
+        {whiteNotes.map((pitch) => <button key={pitch} onPointerDown={() => audioEngine.triggerExternal(node.id, pitch, 0.82, 0.8)}><span>{pitch % 12 === 0 ? `C${pitch / 12 - 1}` : ''}</span></button>)}
         {blackNotes.map((note) => <button className="black-key" key={note.pitch} style={{ left: `${note.left}%` }} onPointerDown={() => audioEngine.triggerExternal(node.id, note.pitch, 0.74, 0.65)} />)}
       </div>
       {mode === 'roll' ? <SequenceEditor node={node} /> : <ScoreEditor node={node} />}
@@ -113,7 +116,7 @@ export function FloatingEditor() {
   const isAnalyzer = ['spectrum', 'oscilloscope', 'loudness', 'tuner'].includes(node.data.moduleType);
 
   const pointerDown = (event: React.PointerEvent) => {
-    if (maximized) return;
+    if (maximized || (event.target as HTMLElement).closest('button')) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
     drag.current = {
@@ -132,12 +135,12 @@ export function FloatingEditor() {
 
   return (
     <div className="floating-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeDetail(); }}>
-      <section className={`floating-editor ${maximized ? 'maximized' : ''} ${isDynamics ? 'dynamics-window' : ''}`} style={maximized ? undefined : { left: position.x, top: position.y }}>
+      <section role="dialog" aria-modal="true" aria-label={`Editor de ${String(node.data.label)}`} className={`floating-editor ${maximized ? 'maximized' : ''} ${isDynamics ? 'dynamics-window' : ''}`} style={maximized ? undefined : { left: position.x, top: position.y }}>
         <header className="floating-titlebar" onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp}>
           <GripHorizontal size={16} />
           <span className="window-color" style={{ background: node.data.color }} />
           <strong>{node.data.label}</strong><small>{definition.category} · Editor avanzado</small>
-          <div><button title="Mantener encima"><Pin size={14} /></button><button title={maximized ? 'Restaurar' : 'Maximizar'} onClick={() => setMaximized((value) => !value)}>{maximized ? <Minimize2 size={14} /> : <Expand size={14} />}</button><button title="Cerrar" onClick={closeDetail}><X size={15} /></button></div>
+          <div onPointerDown={(event) => event.stopPropagation()}><button type="button" title="Mantener encima"><Pin size={14} /></button><button type="button" title={maximized ? 'Restaurar' : 'Maximizar'} onClick={() => setMaximized((value) => !value)}>{maximized ? <Minimize2 size={14} /> : <Expand size={14} />}</button><button type="button" title="Cerrar" aria-label="Cerrar editor" onClick={(event) => { event.stopPropagation(); closeDetail(); }}><X size={15} /></button></div>
         </header>
         <div className="floating-content">
           {isDynamics ? <DynamicsLab node={node} /> : isDeck ? <DeckLab node={node} /> : isComposer ? <ComposerLab node={node} /> : isAnalyzer ? <AnalyzerLab node={node} /> : <GenericLab node={node} />}
