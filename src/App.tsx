@@ -1,4 +1,4 @@
-import { PanelLeftOpen, PanelRightOpen, Radio, ShieldCheck, WifiOff } from 'lucide-react';
+import { Activity, ChevronLeft, ChevronRight, Radio, ShieldCheck, WifiOff } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { audioEngine } from './audio/AudioEngine';
 import { BottomDock } from './components/BottomDock';
@@ -8,11 +8,12 @@ import { ModuleBrowser } from './components/ModuleBrowser';
 import { StudioCanvas } from './components/StudioCanvas';
 import { TopBar } from './components/TopBar';
 import { Welcome } from './components/Welcome';
-import { useStudioStore } from './store/studioStore';
+import { selectActiveWorkspace, useStudioStore } from './store/studioStore';
 import { exportProject, openProjectPicker, readAutosave, saveAutosave } from './utils/projectIO';
 
 export default function App() {
   const project = useStudioStore((state) => state.project);
+  const workspace = useStudioStore(selectActiveWorkspace);
   const isPlaying = useStudioStore((state) => state.isPlaying);
   const leftOpen = useStudioStore((state) => state.leftOpen);
   const rightOpen = useStudioStore((state) => state.rightOpen);
@@ -82,17 +83,19 @@ export default function App() {
     <div className={`auditorium-app ${leftOpen ? 'has-left' : ''} ${rightOpen ? 'has-right' : ''} ${bottomOpen ? 'has-bottom' : ''}`}>
       <TopBar />
       <div className="studio-layout">
-        {leftOpen ? <ModuleBrowser /> : <button className="panel-reveal left" onClick={() => setPanel('left', true)} title="Mostrar biblioteca"><PanelLeftOpen size={16} /></button>}
+        {leftOpen ? <ModuleBrowser /> : <button className="panel-reveal left" onClick={() => setPanel('left', true)} title="Mostrar biblioteca"><ChevronRight size={16} /></button>}
         <div className="canvas-column">
           <StudioCanvas />
           <div className="workspace-statusbar">
             <span className="status-message"><Radio size={11} />{status}</span>
+            <span><Activity size={11} />{isPlaying ? 'Procesando audio' : 'Edición modular'}</span>
+            <span>{workspace.nodes.length} módulos</span>
             <span><ShieldCheck size={11} />Motor protegido contra clipping</span>
             <span>{isDesktop ? <><Radio size={11} />Aplicación local</> : <><WifiOff size={11} />Sesión local y privada</>}</span>
-            <span>Auditorium Project v1</span>
+            <span className="canvas-shortcut">Rueda: zoom · doble clic: encajar</span>
           </div>
         </div>
-        {rightOpen ? <Inspector /> : <button className="panel-reveal right" onClick={() => setPanel('right', true)} title="Mostrar inspector"><PanelRightOpen size={16} /></button>}
+        {rightOpen ? <Inspector /> : <button className="panel-reveal right" onClick={() => setPanel('right', true)} title="Mostrar inspector"><ChevronLeft size={16} /></button>}
       </div>
       <BottomDock />
       <FloatingEditor />

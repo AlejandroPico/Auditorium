@@ -1,5 +1,5 @@
 import { instrumentById } from '../data/instruments';
-import type { AuditoriumProject, ModuleData, StudioNode, Workspace } from '../types';
+import type { AuditoriumProject, InstrumentPreset, ModuleData, StudioNode, Workspace } from '../types';
 import { encodeWav } from './wav';
 
 interface RuntimeNode {
@@ -532,6 +532,38 @@ class AuditoriumAudioEngine {
     const runtime = this.runtimes.get(nodeId) ?? Array.from(this.runtimes.values()).find((item) => ['instrument', 'oscillator', 'pianoRoll', 'score'].includes(item.data.moduleType));
     if (!runtime || !this.context) return;
     this.triggerVoice(runtime, pitch, velocity, this.context.currentTime + 0.005, duration);
+  }
+
+  async previewInstrument(preset: InstrumentPreset) {
+    const context = await this.init();
+    if (!this.masterGain) return;
+    const previewBus = context.createGain();
+    previewBus.gain.value = 0.72;
+    previewBus.connect(this.masterGain);
+    const startedAt = context.currentTime + 0.015;
+
+    [60, 64, 67].forEach((pitch, index) => {
+      const time = startedAt + index * 0.28;
+      const duration = 0.22;
+      const oscillator = context.createOscillator();
+      const filter = context.createBiquadFilter();
+      const gain = context.createGain();
+      oscillator.type = preset.waveform;
+      oscillator.frequency.setValueAtTime(pitchToFrequency(pitch), time);
+      oscillator.detune.value = preset.detune ?? 0;
+      filter.type = 'lowpass';
+      filter.frequency.value = preset.filter;
+      filter.Q.value = 0.7;
+      gain.gain.setValueAtTime(0.0001, time);
+      gain.gain.exponentialRampToValueAtTime(0.16, time + Math.max(0.006, preset.attack));
+      gain.gain.setValueAtTime(0.13, time + duration);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + duration + Math.min(0.8, preset.release));
+      oscillator.connect(filter).connect(gain).connect(previewBus);
+      oscillator.start(time);
+      oscillator.stop(time + duration + Math.min(0.8, preset.release) + 0.04);
+    });
+
+    window.setTimeout(() => previewBus.disconnect(), 1900);
   }
 
   async loadAudioFile(nodeId: string, file: File) {

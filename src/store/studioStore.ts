@@ -91,7 +91,7 @@ export const createInitialProject = (): AuditoriumProject => {
   const mixer = makeNode('mixer', { x: 580, y: 220 }, { label: 'Bus musical' }, 'mixer-main');
   const spectrum = makeNode('spectrum', { x: 850, y: 216 }, {}, 'spectrum-main');
   const output = makeNode('output', { x: 1135, y: 218 }, {}, 'master-output');
-  const capsule = makeNode('capsule', { x: 580, y: 505 }, { label: 'Color paralelo', workspaceId: 'capsule-color' }, 'capsule-color-node');
+  const capsule = makeNode('capsule', { x: 292, y: 545 }, { label: 'Color paralelo', workspaceId: 'capsule-color' }, 'capsule-color-node');
 
   const root: Workspace = {
     id: 'root',
@@ -102,6 +102,8 @@ export const createInitialProject = (): AuditoriumProject => {
       makeEdge(dynamics.id, mixer.id, 'dynamics-to-mixer'),
       makeEdge(instrument.id, reverb.id, 'instrument-to-reverb'),
       makeEdge(reverb.id, mixer.id, 'reverb-to-mixer'),
+      makeEdge(instrument.id, capsule.id, 'instrument-to-capsule'),
+      makeEdge(capsule.id, mixer.id, 'capsule-to-mixer'),
       makeEdge(drums.id, mixer.id, 'drums-to-mixer'),
       makeEdge(mixer.id, spectrum.id, 'mixer-to-spectrum'),
       makeEdge(spectrum.id, output.id, 'spectrum-to-output'),
@@ -227,7 +229,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   bottomOpen: true,
   bottomTab: 'mixer',
   detailNodeId: null,
-  showWelcome: !sessionStorage.getItem('auditorium-welcomed'),
+  showWelcome: true,
   status: 'Motor listo · 48 kHz',
   historyPast: [],
   historyFuture: [],
@@ -390,7 +392,6 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   setBottomTab: (bottomTab) => set({ bottomTab, bottomOpen: true }),
   setPerformanceMode: (performanceMode) => set({ performanceMode, leftOpen: !performanceMode, rightOpen: !performanceMode, bottomOpen: !performanceMode }),
   setWelcome: (showWelcome) => {
-    if (!showWelcome) sessionStorage.setItem('auditorium-welcomed', '1');
     set({ showWelcome });
   },
   setStatus: (status) => set({ status }),

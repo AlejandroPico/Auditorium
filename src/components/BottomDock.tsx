@@ -4,23 +4,17 @@ import {
   ChevronUp,
   FileAudio,
   FolderOpen,
-  Grid3X3,
   Library,
-  ListMusic,
   Music2,
   Piano,
-  Plus,
   Search,
   SlidersVertical,
-  Sparkles,
   Volume2,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { audioEngine } from '../audio/AudioEngine';
 import { instrumentFamilies, instruments } from '../data/instruments';
-import { getModuleDefinition } from '../data/moduleCatalog';
 import { selectActiveWorkspace, useStudioStore } from '../store/studioStore';
-import type { StudioNode } from '../types';
 import { ScoreEditor } from './ScoreEditor';
 
 const tabs = [
@@ -59,7 +53,6 @@ function MixerView() {
             </article>
           );
         })}
-        <button className="add-channel" onClick={() => useStudioStore.getState().addModule({ definition: getModuleDefinition('mixer') })}><Plus size={18} /><span>Canal</span></button>
       </div>
     </div>
   );
@@ -93,44 +86,41 @@ function ArrangementView() {
 function InstrumentLibrary() {
   const [query, setQuery] = useState('');
   const [family, setFamily] = useState('Todo');
-  const project = useStudioStore((state) => state.project);
-  const selectedNodeId = useStudioStore((state) => state.selectedNodeId);
-  const workspace = useStudioStore(selectActiveWorkspace);
-  const updateNodeData = useStudioStore((state) => state.updateNodeData);
-  const addModule = useStudioStore((state) => state.addModule);
   const setStatus = useStudioStore((state) => state.setStatus);
-  const selected = workspace.nodes.find((node) => node.id === selectedNodeId);
   const filtered = useMemo(() => {
     const normalized = query.toLocaleLowerCase('es').trim();
     return instruments.filter((instrument) => (family === 'Todo' || instrument.family === family) && (!normalized || `${instrument.name} ${instrument.family} ${instrument.region}`.toLocaleLowerCase('es').includes(normalized)));
   }, [family, query]);
 
-  const choose = async (instrument: (typeof instruments)[number]) => {
-    let nodeId = selected?.data.moduleType === 'instrument' ? selected.id : '';
-    if (nodeId) updateNodeData(nodeId, { instrumentId: instrument.id, label: instrument.name });
-    else nodeId = addModule({ definition: getModuleDefinition('instrument'), instrument });
-    setStatus(`${instrument.name} cargado · modelo sintetizado de ${instrument.family}`);
+  const preview = async (instrument: (typeof instruments)[number]) => {
     try {
-      await audioEngine.syncProject(useStudioStore.getState().project);
-      audioEngine.triggerExternal(nodeId, 60, 0.78, 0.7);
-    } catch { /* audio activation remains optional */ }
+      setStatus(`Escuchando ${instrument.name} · muestra de tres notas`);
+      await audioEngine.previewInstrument(instrument);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'No se pudo reproducir la muestra');
+    }
+  };
+
+  const handleDrag = (event: React.DragEvent, instrument: (typeof instruments)[number]) => {
+    event.dataTransfer.setData('application/auditorium-instrument', instrument.id);
+    event.dataTransfer.effectAllowed = 'copy';
+    setStatus(`Arrastrando ${instrument.name} · suelta en el lienzo para añadirlo`);
   };
 
   return (
     <div className="instrument-library">
       <aside>
         <label><Search size={14} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar entre instrumentos…" /></label>
-        <nav><button className={family === 'Todo' ? 'active' : ''} onClick={() => setFamily('Todo')}><Library size={14} />Todos <span>{instruments.length}</span></button>{instrumentFamilies.map((item) => <button className={family === item ? 'active' : ''} key={item} onClick={() => setFamily(item)}><Music2 size={14} />{item}<span>{instruments.filter((instrument) => instrument.family === item).length}</span></button>)}</nav>
+        <nav><button className={family === 'Todo' ? 'active' : ''} onClick={() => setFamily('Todo')}><Library size={14} />Todos</button>{instrumentFamilies.map((item) => <button className={family === item ? 'active' : ''} key={item} onClick={() => setFamily(item)}><Music2 size={14} />{item}</button>)}</nav>
       </aside>
       <div className="instrument-grid-wrap">
-        <div className="library-heading"><div><Sparkles size={15} /><span><strong>{family}</strong><small>{filtered.length} modelos disponibles</small></span></div><span>Haz clic para cargar y escuchar</span></div>
+        <div className="library-heading"><div><Piano size={15} /><strong>{family}</strong></div><span>Arrastra al lienzo · pulsa el altavoz para escuchar</span></div>
         <div className="instrument-grid">
           {filtered.map((instrument, index) => (
-            <button key={instrument.id} onClick={() => choose(instrument)} style={{ '--instrument-hue': `${(index * 29) % 360}` } as React.CSSProperties}>
-              <span className="preset-icon">{instrument.name.slice(0, 2).toUpperCase()}</span>
-              <span><strong>{instrument.name}</strong><small>{instrument.region} · {instrument.era}</small></span>
-              <i><Volume2 size={13} /></i>
-            </button>
+            <article className="instrument-preset-card" draggable key={instrument.id} onDragStart={(event) => handleDrag(event, instrument)} style={{ '--instrument-hue': `${(index * 29) % 360}` } as React.CSSProperties}>
+              <strong>{instrument.name}</strong>
+              <button draggable={false} title={`Escuchar una muestra de ${instrument.name}`} onClick={() => preview(instrument)}><Volume2 size={14} /></button>
+            </article>
           ))}
         </div>
       </div>
@@ -141,10 +131,9 @@ function InstrumentLibrary() {
 function ScoreView() {
   const workspace = useStudioStore(selectActiveWorkspace);
   const selectedNodeId = useStudioStore((state) => state.selectedNodeId);
-  const addModule = useStudioStore((state) => state.addModule);
   const selected = workspace.nodes.find((node) => node.id === selectedNodeId && node.data.sequence);
   const sequenceNode = selected ?? workspace.nodes.find((node) => node.data.sequence);
-  if (!sequenceNode) return <div className="empty-score"><Music2 size={26} /><strong>No hay una voz seleccionada</strong><p>Añade una partitura para comenzar a escribir.</p><button onClick={() => addModule({ definition: getModuleDefinition('score') })}><Plus size={14} />Nueva partitura</button></div>;
+  if (!sequenceNode) return <div className="empty-score"><Music2 size={26} /><strong>No hay una voz seleccionada</strong><p>Arrastra una partitura desde Módulos para comenzar a escribir.</p></div>;
   return <ScoreEditor node={sequenceNode} />;
 }
 
@@ -167,8 +156,7 @@ export function BottomDock() {
   return (
     <section className={`bottom-dock panel-surface ${open ? 'open' : 'closed'}`}>
       <nav className="dock-tabs">
-        {tabs.map((item) => <button key={item.id} className={tab === item.id && open ? 'active' : ''} onClick={() => { if (tab === item.id && open) setPanel('bottom', false); else setBottomTab(item.id); }}><item.icon size={14} />{item.label}</button>)}
-        <span className="dock-spacer" />
+        <div className="dock-tab-group">{tabs.map((item) => <button key={item.id} className={tab === item.id && open ? 'active' : ''} onClick={() => { if (tab === item.id && open) setPanel('bottom', false); else setBottomTab(item.id); }}><item.icon size={14} />{item.label}</button>)}</div>
         <span className="dock-state"><i />AUTOGUARDADO</span>
         <button className="dock-toggle" onClick={() => setPanel('bottom', !open)}>{open ? <ChevronDown size={15} /> : <ChevronUp size={15} />}</button>
       </nav>

@@ -1,8 +1,8 @@
-import { ChevronRight, Copy, FileAudio, Gauge, Mic2, PanelRightClose, SlidersHorizontal, Trash2, Unplug, Waves } from 'lucide-react';
+import { Cable, ChevronRight, Copy, FileAudio, Gauge, Mic2, SlidersHorizontal, Trash2, Unplug, Waves } from 'lucide-react';
 import { audioEngine } from '../audio/AudioEngine';
 import { instrumentById } from '../data/instruments';
 import { getModuleDefinition } from '../data/moduleCatalog';
-import { findNodeInProject, useStudioStore } from '../store/studioStore';
+import { findNodeInProject, selectActiveWorkspace, useStudioStore } from '../store/studioStore';
 import type { ParamDefinition } from '../types';
 import { pickAudioFile } from '../utils/projectIO';
 
@@ -28,6 +28,7 @@ function NumericParam({ definition, value, onChange }: { definition: ParamDefini
 
 export function Inspector() {
   const project = useStudioStore((state) => state.project);
+  const workspace = useStudioStore(selectActiveWorkspace);
   const selectedNodeId = useStudioStore((state) => state.selectedNodeId);
   const node = findNodeInProject(project, selectedNodeId);
   const updateNodeParam = useStudioStore((state) => state.updateNodeParam);
@@ -45,7 +46,7 @@ export function Inspector() {
       <aside className="inspector panel-surface inspector-empty">
         <div className="panel-heading">
           <div><span className="eyebrow">Inspector</span><h2>Propiedades</h2></div>
-          <button className="icon-button subtle" onClick={() => setPanel('right', false)}><PanelRightClose size={16} /></button>
+          <button className="icon-button subtle" onClick={() => setPanel('right', false)} title="Ocultar inspector"><ChevronRight size={16} /></button>
         </div>
         <div className="inspector-placeholder">
           <div className="placeholder-orbit"><SlidersHorizontal size={24} /></div>
@@ -61,6 +62,14 @@ export function Inspector() {
   const instrument = node.data.instrumentId ? instrumentById.get(node.data.instrumentId) : undefined;
   const supportsFile = ['turntable', 'sampler', 'stemDeck'].includes(node.data.moduleType);
   const supportsMic = ['microphone', 'audioInput'].includes(node.data.moduleType);
+  const incoming = workspace.edges
+    .filter((edge) => edge.target === node.id)
+    .map((edge) => workspace.nodes.find((candidate) => candidate.id === edge.source))
+    .filter((candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate));
+  const outgoing = workspace.edges
+    .filter((edge) => edge.source === node.id)
+    .map((edge) => workspace.nodes.find((candidate) => candidate.id === edge.target))
+    .filter((candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate));
 
   const loadFile = async () => {
     try {
@@ -88,7 +97,7 @@ export function Inspector() {
     <aside className="inspector panel-surface">
       <div className="panel-heading">
         <div><span className="eyebrow">Inspector</span><h2>{definition.label}</h2></div>
-        <button className="icon-button subtle" onClick={() => setPanel('right', false)} title="Ocultar inspector"><PanelRightClose size={16} /></button>
+        <button className="icon-button subtle" onClick={() => setPanel('right', false)} title="Ocultar inspector"><ChevronRight size={16} /></button>
       </div>
       <div className="inspector-scroll">
         <section className="inspector-identity" style={{ '--module-color': node.data.color } as React.CSSProperties}>
@@ -125,10 +134,16 @@ export function Inspector() {
         {instrument && (
           <section className="instrument-summary" onClick={() => setBottomTab('instruments')}>
             <span className="instrument-monogram">{instrument.name.slice(0, 2).toUpperCase()}</span>
-            <div><strong>{instrument.name}</strong><small>{instrument.family} · {instrument.region}</small></div>
+            <div><strong>{instrument.name}</strong><small>{instrument.family} · {instrument.region} · {instrument.era}</small></div>
             <ChevronRight size={16} />
           </section>
         )}
+
+        <section className="inspector-section connection-summary">
+          <div className="section-title"><span>Conexiones</span><small>{incoming.length} entrada{incoming.length === 1 ? '' : 's'} · {outgoing.length} salida{outgoing.length === 1 ? '' : 's'}</small></div>
+          <div><Cable size={14} /><span><b>Desde</b><small>{incoming.length ? incoming.map((candidate) => String(candidate.data.label)).join(', ') : 'Sin conexión de entrada'}</small></span></div>
+          <div><Cable size={14} /><span><b>Hacia</b><small>{outgoing.length ? outgoing.map((candidate) => String(candidate.data.label)).join(', ') : 'Sin conexión de salida'}</small></span></div>
+        </section>
 
         <section className="inspector-section">
           <div className="section-title"><span>Parámetros</span><small>{definition.params.length}</small></div>

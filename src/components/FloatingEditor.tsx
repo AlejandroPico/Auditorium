@@ -10,6 +10,8 @@ import { DynamicsLab } from './DynamicsLab';
 import { ScoreEditor } from './ScoreEditor';
 import { SequenceEditor } from './SequenceEditor';
 
+const TOPBAR_HEIGHT = 46;
+
 function AnalyzerLab({ node }: { node: StudioNode }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isPlaying = useStudioStore((state) => state.isPlaying);
@@ -116,14 +118,14 @@ export function FloatingEditor() {
     const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
     drag.current = {
       x: event.clientX - (bounds?.left ?? position.x),
-      y: event.clientY - (bounds?.top ?? position.y + 58),
+      y: event.clientY - (bounds?.top ?? position.y + TOPBAR_HEIGHT),
     };
   };
   const pointerMove = (event: React.PointerEvent) => {
     if (!drag.current) return;
     setPosition({
       x: Math.max(0, event.clientX - drag.current.x),
-      y: Math.max(0, event.clientY - 58 - drag.current.y),
+      y: Math.max(0, event.clientY - TOPBAR_HEIGHT - drag.current.y),
     });
   };
   const pointerUp = () => { drag.current = null; };

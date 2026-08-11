@@ -1,20 +1,12 @@
-import { ChevronLeft, Plus, Search, Sparkles } from 'lucide-react';
+import { ChevronLeft, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { instruments } from '../data/instruments';
 import { moduleCatalog, moduleCategories } from '../data/moduleCatalog';
 import { useStudioStore } from '../store/studioStore';
 import type { ModuleCategory, ModuleDefinition } from '../types';
 
-const portLabel = (module: ModuleDefinition) => {
-  if (!module.inputs) return `${module.outputs} salida${module.outputs === 1 ? '' : 's'}`;
-  if (!module.outputs) return `${module.inputs} entrada${module.inputs === 1 ? '' : 's'}`;
-  return `${module.inputs}→${module.outputs}`;
-};
-
 export function ModuleBrowser() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<ModuleCategory | 'Todo'>('Todo');
-  const addModule = useStudioStore((state) => state.addModule);
   const setPanel = useStudioStore((state) => state.setPanel);
 
   const filtered = useMemo(() => {
@@ -59,22 +51,14 @@ export function ModuleBrowser() {
             onDragStart={(event) => handleDrag(event, module)}
             style={{ '--module-color': module.color } as React.CSSProperties}
           >
-            <span className="browser-module-mark" />
             <div>
               <strong>{module.label}</strong>
               <p>{module.description}</p>
-              <small>{module.category} · {portLabel(module)}</small>
             </div>
-            <button title={`Añadir ${module.label}`} onClick={() => addModule({ definition: module })}><Plus size={15} /></button>
           </article>
         ))}
         {!filtered.length && <div className="empty-browser"><Search size={26} /><strong>Sin coincidencias</strong><span>Prueba otra palabra o categoría.</span></div>}
       </div>
-      <button className="instrument-count-card" onClick={() => useStudioStore.getState().setBottomTab('instruments')}>
-        <Sparkles size={17} />
-        <span><strong>{instruments.length} instrumentos</strong><small>Catálogo orquestal, mundial y electrónico</small></span>
-        <ChevronLeft size={15} className="point-right" />
-      </button>
     </aside>
   );
 }

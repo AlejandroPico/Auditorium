@@ -1,16 +1,13 @@
 import {
-  Activity,
   CircleDot,
   CloudDownload,
   Download,
+  ExternalLink,
   FolderOpen,
   Gauge,
   HardDriveDownload,
-  Laptop,
-  Menu,
+  Info,
   Mic2,
-  PanelLeft,
-  PanelRight,
   Pause,
   Play,
   Radio,
@@ -28,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { audioEngine } from '../audio/AudioEngine';
-import { selectActiveWorkspace, useStudioStore } from '../store/studioStore';
+import { useStudioStore } from '../store/studioStore';
 import { downloadBlob, exportProject, openProjectPicker } from '../utils/projectIO';
 
 function TransportTime() {
@@ -111,13 +108,31 @@ function SettingsMenu({ close }: { close: () => void }) {
   );
 }
 
+function AboutMenu({ close }: { close: () => void }) {
+  return (
+    <div className="top-popover about-popover">
+      <header>
+        <div><span className="eyebrow">Acerca de</span><strong>Auditorium 0.1.0</strong></div>
+        <button onClick={close} aria-label="Cerrar Acerca de"><X size={14} /></button>
+      </header>
+      <div className="about-brand">
+        <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" />
+        <div><strong>El estudio que crece con tu sonido.</strong><p>Composición, mezcla, interpretación y diseño sonoro en un único lienzo modular.</p></div>
+      </div>
+      <div className="about-facts">
+        <span><b>Sesiones privadas</b><small>Autoguardado local en este dispositivo</small></span>
+        <span><b>Motor Web Audio</b><small>Procesamiento en tiempo real y MIDI</small></span>
+        <span><b>Escritorio multiplataforma</b><small>Windows, macOS y Linux con Tauri</small></span>
+      </div>
+      <a href="https://github.com/AlejandroPico/Auditorium" target="_blank" rel="noreferrer">Ver proyecto en GitHub <ExternalLink size={13} /></a>
+    </div>
+  );
+}
+
 export function TopBar() {
   const project = useStudioStore((state) => state.project);
-  const workspace = useStudioStore(selectActiveWorkspace);
   const playing = useStudioStore((state) => state.isPlaying);
   const recording = useStudioStore((state) => state.isRecording);
-  const leftOpen = useStudioStore((state) => state.leftOpen);
-  const rightOpen = useStudioStore((state) => state.rightOpen);
   const historyPast = useStudioStore((state) => state.historyPast);
   const historyFuture = useStudioStore((state) => state.historyFuture);
   const setProjectName = useStudioStore((state) => state.setProjectName);
@@ -126,12 +141,11 @@ export function TopBar() {
   const setPlaying = useStudioStore((state) => state.setPlaying);
   const setRecording = useStudioStore((state) => state.setRecording);
   const setStatus = useStudioStore((state) => state.setStatus);
-  const setPanel = useStudioStore((state) => state.setPanel);
   const loadProject = useStudioStore((state) => state.loadProject);
   const newProject = useStudioStore((state) => state.newProject);
   const undo = useStudioStore((state) => state.undo);
   const redo = useStudioStore((state) => state.redo);
-  const [popover, setPopover] = useState<'download' | 'settings' | null>(null);
+  const [popover, setPopover] = useState<'download' | 'settings' | 'about' | null>(null);
 
   const togglePlay = async () => {
     try {
@@ -178,40 +192,44 @@ export function TopBar() {
 
   return (
     <header className="topbar">
-      <div className="brand-cluster">
-        <button className="app-menu" title="Menú de Auditorium"><Menu size={17} /></button>
-        <div className="app-logo"><span>A</span><i /></div>
-        <div className="brand-name"><strong>AUDITORIUM</strong><small>MODULAR AUDIO STUDIO</small></div>
+      <div className="topbar-left">
+        <div className="brand-cluster">
+          <div className="app-logo"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" /></div>
+          <div className="brand-name"><strong>AUDITORIUM</strong></div>
+        </div>
+        <div className="file-cluster">
+          <button title="Nueva sesión" onClick={() => { if (window.confirm('¿Crear una sesión nueva? La sesión actual seguirá en el autoguardado.')) newProject(); }}><RotateCcw size={14} /></button>
+          <button title="Abrir proyecto" onClick={open}><FolderOpen size={14} /></button>
+          <button title="Guardar proyecto" onClick={() => { exportProject(project); setStatus('Proyecto guardado como archivo portable'); }}><Save size={14} /></button>
+          <span />
+          <button title="Deshacer" disabled={!historyPast.length} onClick={undo}><Undo2 size={14} /></button>
+          <button title="Rehacer" disabled={!historyFuture.length} onClick={redo}><Redo2 size={14} /></button>
+        </div>
+        <label className="project-name"><i className={playing ? 'online' : ''} /><input aria-label="Nombre de la sesión" value={project.metadata.name} onChange={(event) => setProjectName(event.target.value)} /></label>
       </div>
-      <div className="file-cluster">
-        <button title="Nueva sesión" onClick={() => { if (window.confirm('¿Crear una sesión nueva? La sesión actual seguirá en el autoguardado.')) newProject(); }}><RotateCcw size={15} /></button>
-        <button title="Abrir proyecto" onClick={open}><FolderOpen size={15} /></button>
-        <button title="Guardar proyecto" onClick={() => { exportProject(project); setStatus('Proyecto guardado como archivo portable'); }}><Save size={15} /></button>
-        <span />
-        <button title="Deshacer" disabled={!historyPast.length} onClick={undo}><Undo2 size={15} /></button>
-        <button title="Rehacer" disabled={!historyFuture.length} onClick={redo}><Redo2 size={15} /></button>
+      <div className="topbar-center">
+        <div className="transport-cluster">
+          <button title="Volver al inicio" onClick={stop}><SkipBack size={14} /></button>
+          <button className={`record-button ${recording ? 'active' : ''}`} title={recording ? 'Detener y exportar grabación' : 'Grabar master'} onClick={record}><CircleDot size={15} fill={recording ? 'currentColor' : 'none'} /></button>
+          <button className={`play-button ${playing ? 'active' : ''}`} title={playing ? 'Pausa' : 'Reproducir'} onClick={togglePlay}>{playing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />}</button>
+          <button title="Detener" onClick={stop}><Square size={13} fill="currentColor" /></button>
+          <button className={project.transport.loop ? 'active' : ''} title="Bucle" onClick={() => toggleTransportOption('loop')}><Repeat2 size={14} /></button>
+        </div>
+        <TransportTime />
       </div>
-      <label className="project-name"><i className={playing ? 'online' : ''} /><input value={project.metadata.name} onChange={(event) => setProjectName(event.target.value)} /><span>{workspace.name}</span></label>
-      <div className="transport-cluster">
-        <button title="Volver al inicio" onClick={stop}><SkipBack size={15} /></button>
-        <button className={`record-button ${recording ? 'active' : ''}`} title={recording ? 'Detener y exportar grabación' : 'Grabar master'} onClick={record}><CircleDot size={16} fill={recording ? 'currentColor' : 'none'} /></button>
-        <button className={`play-button ${playing ? 'active' : ''}`} title={playing ? 'Pausa' : 'Reproducir'} onClick={togglePlay}>{playing ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}</button>
-        <button title="Detener" onClick={stop}><Square size={14} fill="currentColor" /></button>
-        <button className={project.transport.loop ? 'active' : ''} title="Bucle" onClick={() => toggleTransportOption('loop')}><Repeat2 size={15} /></button>
+      <div className="topbar-right">
+        <div className="tempo-cluster"><label><span>BPM</span><input type="number" min="20" max="400" value={project.transport.bpm} onChange={(event) => setBpm(Number(event.target.value))} /></label><button className={project.transport.metronome ? 'active' : ''} onClick={() => toggleTransportOption('metronome')} title="Metrónomo"><Radio size={14} /></button><span>4/4</span></div>
+        <div className="master-cluster"><MasterMeter /><span><b>-1.4</b><small>dBTP</small></span><button title="Volumen maestro"><Volume2 size={14} /></button></div>
+        <div className="utility-cluster">
+          <button onClick={enableMidi} title="MIDI y hardware"><Mic2 size={14} /></button>
+          <button className={popover === 'settings' ? 'active' : ''} onClick={() => setPopover(popover === 'settings' ? null : 'settings')} title="Ajustes"><Settings size={14} /></button>
+          <button className={`about-button ${popover === 'about' ? 'active' : ''}`} onClick={() => setPopover(popover === 'about' ? null : 'about')}><Info size={13} /><span>Acerca de</span></button>
+          <button className="download-button" onClick={() => setPopover(popover === 'download' ? null : 'download')}><CloudDownload size={14} /><span>Descargar</span></button>
+        </div>
       </div>
-      <TransportTime />
-      <div className="tempo-cluster"><label><span>BPM</span><input type="number" min="20" max="400" value={project.transport.bpm} onChange={(event) => setBpm(Number(event.target.value))} /></label><button className={project.transport.metronome ? 'active' : ''} onClick={() => toggleTransportOption('metronome')} title="Metrónomo"><Radio size={15} /></button><span>4/4</span></div>
-      <div className="master-cluster"><MasterMeter /><span><b>-1.4</b><small>dBTP</small></span><button title="Volumen maestro"><Volume2 size={15} /></button></div>
-      <div className="utility-cluster">
-        <button className={leftOpen ? 'active' : ''} onClick={() => setPanel('left', !leftOpen)} title="Biblioteca"><PanelLeft size={15} /></button>
-        <button onClick={enableMidi} title="MIDI y hardware"><Mic2 size={15} /></button>
-        <button className={rightOpen ? 'active' : ''} onClick={() => setPanel('right', !rightOpen)} title="Inspector"><PanelRight size={15} /></button>
-        <button className={popover === 'settings' ? 'active' : ''} onClick={() => setPopover(popover === 'settings' ? null : 'settings')} title="Ajustes"><Settings size={15} /></button>
-        <button className="download-button" onClick={() => setPopover(popover === 'download' ? null : 'download')}><CloudDownload size={15} /><span>Descargar</span></button>
-      </div>
-      <div className="topbar-status"><Activity size={12} /><span>{workspace.nodes.length} módulos</span><i /></div>
       {popover === 'download' && <DownloadMenu close={() => setPopover(null)} />}
       {popover === 'settings' && <SettingsMenu close={() => setPopover(null)} />}
+      {popover === 'about' && <AboutMenu close={() => setPopover(null)} />}
     </header>
   );
 }
