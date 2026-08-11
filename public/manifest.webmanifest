@@ -1,0 +1,13 @@
+{
+  "name": "Auditorium — Estudio musical modular",
+  "short_name": "Auditorium",
+  "description": "Compón, interpreta, mezcla y diseña sonido en un lienzo modular.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#090b10",
+  "theme_color": "#090b10",
+  "icons": [
+    { "src": "./favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
