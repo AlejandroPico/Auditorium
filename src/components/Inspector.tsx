@@ -134,7 +134,7 @@ export function Inspector() {
         {instrument && (
           <section className="instrument-summary" onClick={() => setBottomTab('instruments')}>
             <span className="instrument-monogram">{instrument.name.slice(0, 2).toUpperCase()}</span>
-            <div><strong>{instrument.name}</strong><small>{instrument.family} · {instrument.region} · {instrument.era}</small></div>
+            <div><strong>{instrument.name}</strong><small>{instrument.family} · {instrument.source} · banco {instrument.bankMSB}, programa {instrument.program}</small></div>
             <ChevronRight size={16} />
           </section>
         )}

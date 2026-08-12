@@ -1,5 +1,6 @@
 import { instrumentById } from '../data/instruments';
 import type { AuditoriumProject, InstrumentPreset, ModuleData, StudioNode, Workspace } from '../types';
+import { AuditoriumSoundFontEngine } from './SoundFontEngine';
 import { encodeWav } from './wav';
 
 interface RuntimeNode {
@@ -40,82 +41,6 @@ const createImpulse = (context: AudioContext, duration: number, decay: number) =
 
 const pitchToFrequency = (pitch: number) => 440 * 2 ** ((pitch - 69) / 12);
 
-const previewPhrases: Record<InstrumentPreset['profile'], number[]> = {
-  hammered: [60, 64, 67, 72], organ: [48, 55, 60, 64], plucked: [64, 67, 71, 76], bass: [36, 43, 48, 46],
-  bowed: [55, 59, 62, 67], flute: [72, 74, 76, 79], reed: [60, 62, 65, 69], brass: [55, 60, 64, 67],
-  mallet: [72, 76, 79, 84], drum: [36, 38, 42, 45], voice: [60, 64, 67, 65], analog: [48, 55, 60, 63],
-  digital: [72, 79, 83, 86], pad: [48, 55, 60, 67], texture: [48, 61, 67, 74],
-};
-
-export const getInstrumentPreviewPattern = (preset: InstrumentPreset) => previewPhrases[preset.profile];
-
-const renderPresetVoice = (
-  context: AudioContext,
-  preset: InstrumentPreset,
-  destination: AudioNode,
-  pitch: number,
-  velocity: number,
-  time: number,
-  duration: number,
-) => {
-  const frequency = pitchToFrequency(pitch);
-  const variation = preset.variation / 97;
-  const filter = context.createBiquadFilter();
-  const envelope = context.createGain();
-  const profile = preset.profile;
-  const sustained = ['organ', 'bowed', 'flute', 'reed', 'brass', 'voice', 'pad', 'texture'].includes(profile);
-  const attack = profile === 'hammered' || profile === 'plucked' || profile === 'mallet' || profile === 'drum'
-    ? Math.min(0.012, preset.attack)
-    : preset.attack;
-  const release = Math.min(profile === 'pad' || profile === 'texture' ? 2.4 : 1.3, preset.release);
-  const peak = Math.max(0.0002, velocity * (profile === 'drum' ? 0.3 : 0.17));
-  const end = time + Math.max(duration, attack + 0.03);
-  filter.type = profile === 'voice' ? 'bandpass' : 'lowpass';
-  filter.frequency.setValueAtTime(Math.max(180, preset.filter * (0.7 + variation * 0.45)), time);
-  filter.Q.value = profile === 'voice' ? 5.5 : profile === 'reed' ? 2.2 : 0.8 + variation;
-  envelope.gain.setValueAtTime(0.0001, time);
-  envelope.gain.exponentialRampToValueAtTime(peak, time + Math.max(0.002, attack));
-  if (sustained) envelope.gain.setValueAtTime(peak * 0.82, end);
-  else envelope.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak * 0.16), end);
-  envelope.gain.exponentialRampToValueAtTime(0.0001, end + release);
-  filter.connect(envelope).connect(destination);
-
-  const partialSets: Record<InstrumentPreset['profile'], number[]> = {
-    hammered: [1, 0.42, 0.18, 0.08], organ: [1, 0.7, 0.42, 0.28], plucked: [1, 0.36, 0.18], bass: [1, 0.5, 0.14],
-    bowed: [1, 0.52, 0.31, 0.18], flute: [1, 0.12, 0.04], reed: [1, 0.5, 0.24], brass: [1, 0.62, 0.37, 0.2],
-    mallet: [1, 0.28, 0.16], drum: [1, 0.45], voice: [1, 0.48, 0.26], analog: [1, 0.55, 0.3],
-    digital: [1, 0.35, 0.22, 0.12], pad: [1, 0.44, 0.25], texture: [1, 0.38, 0.2],
-  };
-  partialSets[profile].forEach((level, index) => {
-    const oscillator = context.createOscillator();
-    const partialGain = context.createGain();
-    oscillator.type = index === 0 ? preset.waveform : profile === 'digital' ? 'sine' : index % 2 ? 'triangle' : 'sine';
-    const inharmonic = profile === 'mallet' || profile === 'digital' || profile === 'texture' ? 1 + variation * 0.025 * index : 1;
-    oscillator.frequency.setValueAtTime(frequency * (index + 1) * inharmonic, time);
-    oscillator.detune.value = (preset.detune ?? 0) + (index ? (variation - 0.5) * 6 : 0);
-    partialGain.gain.value = level / (index + 1);
-    oscillator.connect(partialGain).connect(filter);
-    oscillator.start(time);
-    oscillator.stop(end + release + 0.05);
-  });
-
-  if (['flute', 'reed', 'brass', 'bowed', 'voice', 'texture', 'drum'].includes(profile)) {
-    const noiseLength = Math.max(0.08, Math.min(duration + release, 2));
-    const buffer = context.createBuffer(1, Math.ceil(context.sampleRate * noiseLength), context.sampleRate);
-    const channel = buffer.getChannelData(0);
-    for (let index = 0; index < channel.length; index += 1) channel[index] = Math.random() * 2 - 1;
-    const noise = context.createBufferSource();
-    const noiseFilter = context.createBiquadFilter();
-    const noiseGain = context.createGain();
-    noiseFilter.type = profile === 'drum' ? 'bandpass' : 'highpass';
-    noiseFilter.frequency.value = profile === 'drum' ? 900 + (pitch % 12) * 310 : 2500 + variation * 2400;
-    noiseGain.gain.setValueAtTime(0.0001, time);
-    noiseGain.gain.linearRampToValueAtTime(profile === 'drum' ? peak * 0.8 : peak * 0.08, time + Math.max(0.002, attack));
-    noiseGain.gain.exponentialRampToValueAtTime(0.0001, end + Math.min(release, 0.5));
-    noise.buffer = buffer; noise.connect(noiseFilter).connect(noiseGain).connect(destination); noise.start(time);
-  }
-};
-
 class AuditoriumAudioEngine {
   private context: AudioContext | null = null;
   private masterGain: GainNode | null = null;
@@ -134,6 +59,8 @@ class AuditoriumAudioEngine {
   private recordedLeft: Float32Array[] = [];
   private recordedRight: Float32Array[] = [];
   private started = false;
+  private soundFonts = new AuditoriumSoundFontEngine();
+  private instrumentPreviewBus: GainNode | null = null;
 
   async init() {
     if (!this.context) {
@@ -159,6 +86,19 @@ class AuditoriumAudioEngine {
     return this.masterAnalyser;
   }
 
+  get instrumentEngineState() {
+    return this.soundFonts.state;
+  }
+
+  get instrumentPresetCount() {
+    return this.soundFonts.presetCount;
+  }
+
+  async prepareInstrumentLibrary() {
+    const context = await this.init();
+    await this.soundFonts.initialize(context, 1);
+  }
+
   getAnalyser(nodeId?: string) {
     return nodeId ? this.nodeAnalysers.get(nodeId) ?? this.masterAnalyser : this.masterAnalyser;
   }
@@ -167,6 +107,8 @@ class AuditoriumAudioEngine {
     await this.init();
     this.project = project;
     if (!this.context || !this.masterGain) return;
+    const instrumentCount = Object.values(project.workspaces).reduce((count, workspace) => count + workspace.nodes.filter((node) => node.data.moduleType === 'instrument' && node.data.instrumentId).length, 0);
+    if (instrumentCount) await this.soundFonts.initialize(this.context, instrumentCount);
     this.masterGain.gain.setTargetAtTime(dbToGain(project.transport.masterGain), this.context.currentTime, 0.015);
     const wasStarted = this.started;
     this.clearGraph();
@@ -175,6 +117,7 @@ class AuditoriumAudioEngine {
   }
 
   private clearGraph() {
+    this.soundFonts.clearRouting();
     for (const runtime of this.runtimes.values()) {
       for (const source of runtime.sources) {
         try { source.stop(); } catch { /* already stopped */ }
@@ -235,11 +178,14 @@ class AuditoriumAudioEngine {
 
     if (['oscillator', 'instrument', 'drumMachine', 'pianoRoll', 'score', 'fmSynth', 'wavetable', 'granular', 'turntable', 'stemDeck', 'sampler', 'performancePads', 'stepSequencer', 'microphone', 'audioInput', 'midiInput', 'noise', 'lfo'].includes(type)) {
       const input = context.createGain();
+      const panner = context.createStereoPanner();
       const output = context.createGain();
-      const level = type === 'noise' ? pct(data.params.level, 20) : pct(data.params.level, 75);
+      const level = type === 'noise' ? pct(data.params.level, 20) : pct(data.params.level ?? data.params.gain, 75);
+      panner.pan.value = Math.max(-1, Math.min(1, Number(data.params.pan ?? 0) / 100));
       output.gain.value = data.mute ? 0 : Math.min(1.5, level);
-      input.connect(output);
-      return { id: node.id, input, output, data, nodes: [input, output], sources: [] };
+      input.connect(panner).connect(output);
+      if (type === 'instrument' && data.instrumentId) this.soundFonts.registerNode(node.id, input);
+      return { id: node.id, input, output, data, nodes: [input, panner, output], sources: [] };
     }
 
     if (type === 'eq3') {
@@ -498,6 +444,7 @@ class AuditoriumAudioEngine {
 
   pause() {
     this.started = false;
+    this.soundFonts.stopAll();
     if (this.schedulerTimer !== null) window.clearInterval(this.schedulerTimer);
     this.schedulerTimer = null;
     for (const source of this.mediaSources.values()) {
@@ -545,7 +492,11 @@ class AuditoriumAudioEngine {
     const context = this.context!;
     const preset = runtime.data.instrumentId ? instrumentById.get(runtime.data.instrumentId) : undefined;
     if (preset) {
-      renderPresetVoice(context, preset, runtime.output, pitch, velocity, time, duration);
+      this.soundFonts.triggerNode(runtime.id, preset, pitch, velocity, time, duration, {
+        expression: numberParam(runtime.data, 'expression', 78),
+        attack: numberParam(runtime.data, 'attack', 50),
+        release: numberParam(runtime.data, 'release', 50),
+      });
       return;
     }
     const type = runtime.data.moduleType;
@@ -564,7 +515,7 @@ class AuditoriumAudioEngine {
     gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, velocity * 0.22), time + attack);
     gain.gain.setValueAtTime(Math.max(0.0002, velocity * 0.18), time + Math.max(attack, duration));
     gain.gain.exponentialRampToValueAtTime(0.0001, time + Math.max(attack, duration) + release);
-    oscillator.connect(filter).connect(gain).connect(runtime.output);
+    oscillator.connect(filter).connect(gain).connect(runtime.input);
     oscillator.start(time); oscillator.stop(time + duration + release + 0.05);
     if (companion) {
       companion.type = type === 'fmSynth' ? 'sine' : 'sawtooth';
@@ -586,7 +537,7 @@ class AuditoriumAudioEngine {
       oscillator.frequency.setValueAtTime(150, time);
       oscillator.frequency.exponentialRampToValueAtTime(48, time + 0.12);
       gain.gain.setValueAtTime(0.65, time); gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.32);
-      oscillator.connect(gain).connect(runtime.output); oscillator.start(time); oscillator.stop(time + 0.34);
+      oscillator.connect(gain).connect(runtime.input); oscillator.start(time); oscillator.stop(time + 0.34);
       return;
     }
     const length = kind === 'hat' ? 0.06 : 0.18;
@@ -597,7 +548,7 @@ class AuditoriumAudioEngine {
     const filter = context.createBiquadFilter();
     filter.type = kind === 'hat' ? 'highpass' : 'bandpass'; filter.frequency.value = kind === 'hat' ? 6500 : 1800; filter.Q.value = 0.8;
     gain.gain.setValueAtTime(kind === 'hat' ? 0.18 : 0.32, time); gain.gain.exponentialRampToValueAtTime(0.0001, time + length);
-    source.buffer = buffer; source.connect(filter).connect(gain).connect(runtime.output); source.start(time);
+    source.buffer = buffer; source.connect(filter).connect(gain).connect(runtime.input); source.start(time);
   }
 
   private triggerClick(time: number, accent: boolean) {
@@ -617,19 +568,13 @@ class AuditoriumAudioEngine {
   async previewInstrument(preset: InstrumentPreset) {
     const context = await this.init();
     if (!this.masterGain) return;
-    const previewBus = context.createGain();
-    previewBus.gain.value = 0.72;
-    previewBus.connect(this.masterGain);
-    const startedAt = context.currentTime + 0.015;
-
-    const phrase = getInstrumentPreviewPattern(preset);
-    phrase.forEach((pitch, index) => {
-      const gap = ['bowed', 'organ', 'pad', 'voice'].includes(preset.profile) ? 0.42 : preset.profile === 'drum' ? 0.19 : 0.27;
-      const duration = ['bowed', 'organ', 'pad', 'voice'].includes(preset.profile) ? 0.7 : preset.profile === 'drum' ? 0.12 : 0.26;
-      renderPresetVoice(context, preset, previewBus, pitch, 0.84 - index * 0.06, startedAt + index * gap, duration);
-    });
-
-    window.setTimeout(() => previewBus.disconnect(), 1900);
+    if (!this.instrumentPreviewBus) {
+      this.instrumentPreviewBus = context.createGain();
+      this.instrumentPreviewBus.gain.value = 0.72;
+      this.instrumentPreviewBus.connect(this.masterGain);
+    }
+    await this.soundFonts.initialize(context, 1);
+    await this.soundFonts.preview(preset, this.instrumentPreviewBus);
   }
 
   async loadAudioFile(nodeId: string, file: File) {
@@ -657,7 +602,7 @@ class AuditoriumAudioEngine {
       source.loop = Boolean(runtime.data.params.loop);
       const pitch = numberParam(runtime.data, 'pitch', 0);
       source.playbackRate.value = runtime.data.moduleType === 'turntable' ? 1 + pitch / 100 : 2 ** (pitch / 12);
-      source.connect(runtime.output);
+      source.connect(runtime.input);
       source.start();
       this.mediaSources.set(nodeId, source);
     }
@@ -680,7 +625,7 @@ class AuditoriumAudioEngine {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
     });
-    context.createMediaStreamSource(stream).connect(runtime.output);
+    context.createMediaStreamSource(stream).connect(runtime.input);
     this.streams.set(nodeId, stream);
     return stream;
   }
@@ -724,7 +669,9 @@ class AuditoriumAudioEngine {
     this.clearGraph();
     for (const stream of this.streams.values()) stream.getTracks().forEach((track) => track.stop());
     this.streams.clear();
+    this.soundFonts.dispose();
     this.context?.close();
+    this.instrumentPreviewBus = null;
     this.context = null;
   }
 }

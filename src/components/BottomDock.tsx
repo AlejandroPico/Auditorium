@@ -12,7 +12,7 @@ import {
   Upload,
   Volume2,
 } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { audioEngine } from '../audio/AudioEngine';
 import { instrumentFamilies, instruments } from '../data/instruments';
 import { selectActiveWorkspace, useStudioStore } from '../store/studioStore';
@@ -87,16 +87,27 @@ function ArrangementView() {
 function InstrumentLibrary() {
   const [query, setQuery] = useState('');
   const [family, setFamily] = useState('Todo');
+  const [bankState, setBankState] = useState(audioEngine.instrumentEngineState);
   const setStatus = useStudioStore((state) => state.setStatus);
   const filtered = useMemo(() => {
     const normalized = query.toLocaleLowerCase('es').trim();
-    return instruments.filter((instrument) => (family === 'Todo' || instrument.family === family) && (!normalized || `${instrument.name} ${instrument.family} ${instrument.region}`.toLocaleLowerCase('es').includes(normalized)));
+    return instruments.filter((instrument) => (family === 'Todo' || instrument.family === family) && (!normalized || `${instrument.name} ${instrument.family} ${instrument.sourcePreset}`.toLocaleLowerCase('es').includes(normalized)));
   }, [family, query]);
+
+  useEffect(() => {
+    if (audioEngine.instrumentEngineState === 'ready') { setBankState('ready'); return; }
+    setBankState('loading');
+    setStatus('Cargando GeneralUser GS · 201 presets muestreados únicos · motor AudioWorklet');
+    audioEngine.prepareInstrumentLibrary()
+      .then(() => { setBankState('ready'); setStatus('GeneralUser GS listo · 201 presets únicos cargados en el hilo de audio'); })
+      .catch((error) => { setBankState('error'); setStatus(error instanceof Error ? error.message : 'No se pudo cargar el banco instrumental'); });
+  }, [setStatus]);
 
   const preview = async (instrument: (typeof instruments)[number]) => {
     try {
-      setStatus(`Escuchando ${instrument.name} · muestra de tres notas`);
+      setStatus(`${bankState === 'ready' ? 'Escuchando' : 'Preparando'} ${instrument.name} · preset ${instrument.bankMSB}:${instrument.program} de GeneralUser GS`);
       await audioEngine.previewInstrument(instrument);
+      setBankState('ready');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'No se pudo reproducir la muestra');
     }
@@ -115,12 +126,12 @@ function InstrumentLibrary() {
         <nav><button className={family === 'Todo' ? 'active' : ''} onClick={() => setFamily('Todo')}><Library size={14} />Todos</button>{instrumentFamilies.map((item) => <button className={family === item ? 'active' : ''} key={item} onClick={() => setFamily(item)}><Music2 size={14} />{item}</button>)}</nav>
       </aside>
       <div className="instrument-grid-wrap">
-        <div className="library-heading"><div><Piano size={15} /><strong>{family}</strong></div><span>Arrastra al lienzo · pulsa el altavoz para escuchar</span></div>
+        <div className="library-heading"><div><Piano size={15} /><strong>{family}</strong></div><span>{bankState === 'loading' ? 'Cargando banco muestreado…' : bankState === 'error' ? 'Banco no disponible · revisa la conexión' : 'GeneralUser GS muestreado · arrastra o escucha'}</span></div>
         <div className="instrument-grid">
           {filtered.map((instrument, index) => (
             <article className="instrument-preset-card" draggable key={instrument.id} onDragStart={(event) => handleDrag(event, instrument)} style={{ '--instrument-hue': `${(index * 29) % 360}` } as React.CSSProperties}>
               <strong>{instrument.name}</strong>
-              <button draggable={false} title={`Escuchar una muestra de ${instrument.name}`} onClick={() => preview(instrument)}><Volume2 size={14} /></button>
+              <button draggable={false} disabled={bankState === 'loading'} title={`Escuchar el preset real ${instrument.sourcePreset}`} onClick={() => preview(instrument)}><Volume2 size={14} /></button>
             </article>
           ))}
         </div>

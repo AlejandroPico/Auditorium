@@ -1,94 +1,47 @@
-import type { InstrumentPreset, InstrumentProfile } from '../types';
+import type { InstrumentPreset } from '../types';
+import { generalUserPresets } from './generated/generalUserPresets';
 
-interface InstrumentGroup {
-  family: string;
-  region: string;
-  era: string;
-  waveform: OscillatorType;
-  attack: number;
-  release: number;
-  filter: number;
-  brightness: number;
-  names: string[];
-}
+const families = [
+  'Pianos y teclas', 'Campanas y láminas', 'Órganos y acordeones', 'Guitarras', 'Bajos',
+  'Cuerdas orquestales', 'Conjuntos y voces', 'Metales', 'Maderas', 'Flautas',
+  'Sintetizadores lead', 'Pads', 'Texturas sintéticas', 'Instrumentos del mundo', 'Percusión melódica',
+] as const;
 
-const groups: InstrumentGroup[] = [
-  { family: 'Pianos y teclas', region: 'Global', era: '1700–actualidad', waveform: 'triangle', attack: 0.006, release: 1.4, filter: 6200, brightness: 72, names: ['Piano de concierto', 'Piano de cola brillante', 'Piano de cola íntimo', 'Piano vertical', 'Piano preparado', 'Piano honky-tonk', 'Fortepiano', 'Clavicordio', 'Clavecín francés', 'Clavecín italiano', 'Espineta', 'Virginal', 'Celesta', 'Toy piano', 'Rhodes Mark I', 'Rhodes Mark II', 'Wurlitzer 200A', 'Clavinet D6', 'Pianet', 'Melódica de teclas'] },
-  { family: 'Órganos y armonios', region: 'Europa / Global', era: 'Antigüedad–actualidad', waveform: 'sine', attack: 0.04, release: 0.6, filter: 7600, brightness: 65, names: ['Órgano de tubos pleno', 'Órgano barroco', 'Órgano positivo', 'Órgano portativo', 'Órgano Hammond B3', 'Órgano Hammond C3', 'Órgano Vox Continental', 'Órgano Farfisa', 'Órgano de cine', 'Órgano de iglesia romántico', 'Armonio europeo', 'Pump organ', 'Reed organ', 'Shruti box', 'Bandoneón', 'Acordeón piano', 'Acordeón diatónico', 'Concertina inglesa', 'Concertina anglo', 'Bayan ruso'] },
-  { family: 'Guitarras', region: 'Global', era: '1500–actualidad', waveform: 'triangle', attack: 0.004, release: 1.1, filter: 5400, brightness: 70, names: ['Guitarra clásica española', 'Guitarra flamenca blanca', 'Guitarra flamenca negra', 'Guitarra acústica dreadnought', 'Guitarra acústica jumbo', 'Guitarra acústica parlour', 'Guitarra de doce cuerdas', 'Guitarra resonadora', 'Guitarra eléctrica single-coil', 'Guitarra eléctrica humbucker', 'Guitarra eléctrica semi-hollow', 'Guitarra barítono', 'Guitarra de siete cuerdas', 'Guitarra de ocho cuerdas', 'Guitarra fretless', 'Guitarra lap steel', 'Pedal steel guitar', 'Guitarra portuguesa', 'Guitarra latina requinto', 'Guitarrón mexicano'] },
-  { family: 'Laúdes y pulsadas', region: 'Global', era: 'Antigüedad–actualidad', waveform: 'triangle', attack: 0.003, release: 0.9, filter: 5100, brightness: 67, names: ['Laúd renacentista', 'Laúd barroco', 'Tiorba', 'Archilaúd', 'Vihuela', 'Mandolina napolitana', 'Mandola', 'Mandocello', 'Bandurria', 'Laúd español', 'Balalaika prima', 'Domra', 'Bouzouki griego', 'Bouzouki irlandés', 'Tambura balcánica', 'Saz turco', 'Baglama', 'Oud árabe', 'Barbat persa', 'Pipa china'] },
-  { family: 'Arpas y cítaras', region: 'Global', era: 'Antigüedad–actualidad', waveform: 'triangle', attack: 0.002, release: 1.8, filter: 7200, brightness: 78, names: ['Arpa de concierto', 'Arpa celta', 'Arpa paraguaya', 'Arpa llanera', 'Arpa galesa triple', 'Arpa medieval', 'Lira griega', 'Kithara', 'Cítara de concierto', 'Autoharp', 'Salterio', 'Dulcémele martillado', 'Hackbrett', 'Santur persa', 'Qanun árabe', 'Koto japonés', 'Guzheng chino', 'Gayageum coreano', 'Geomungo coreano', 'Đàn tranh vietnamita'] },
-  { family: 'Bajos', region: 'Global', era: '1500–actualidad', waveform: 'sawtooth', attack: 0.01, release: 0.7, filter: 1900, brightness: 42, names: ['Contrabajo arco', 'Contrabajo pizzicato', 'Bajo eléctrico Precision', 'Bajo eléctrico Jazz', 'Bajo eléctrico Music Man', 'Bajo eléctrico fretless', 'Bajo de cinco cuerdas', 'Bajo de seis cuerdas', 'Bajo acústico', 'Bajo Hofner', 'Stick bass', 'Chapman Stick', 'Sintetizador bajo mono', 'Bajo FM', 'Bajo acid 303', 'Bajo Reese', 'Bajo sub seno', 'Bajo neuro', 'Bajo slap', 'Bajo palm mute'] },
-  { family: 'Cuerdas frotadas', region: 'Europa / Global', era: '1500–actualidad', waveform: 'sawtooth', attack: 0.12, release: 1.1, filter: 5200, brightness: 64, names: ['Violín solista', 'Violín barroco', 'Violín eléctrico', 'Viola solista', 'Viola d’amore', 'Violoncello solista', 'Violoncello barroco', 'Violoncello eléctrico', 'Viola da gamba soprano', 'Viola da gamba tenor', 'Viola da gamba bajo', 'Violone', 'Octobajo', 'Hardanger fiddle', 'Nyckelharpa', 'Crwth galés', 'Rebec medieval', 'Trompeta marina', 'Erhu chino', 'Gaohu chino'] },
-  { family: 'Cuerdas del mundo', region: 'Asia / África / América', era: 'Tradicional', waveform: 'sawtooth', attack: 0.08, release: 0.9, filter: 4700, brightness: 60, names: ['Zhonghu chino', 'Banhu chino', 'Jinghu chino', 'Morin khuur mongol', 'Igil tuvano', 'Kamancheh persa', 'Sarangi indio', 'Sarinda', 'Esraj', 'Dilruba', 'Ravanahatha', 'Gadulka búlgara', 'Gusle balcánico', 'Kokyū japonés', 'Haegeum coreano', 'Masenqo etíope', 'Goje africano', 'Kora africana', 'Ngoni', 'Berimbau brasileño'] },
-  { family: 'Flautas', region: 'Global', era: 'Prehistoria–actualidad', waveform: 'sine', attack: 0.07, release: 0.5, filter: 8900, brightness: 73, names: ['Flautín', 'Flauta travesera de concierto', 'Flauta alto', 'Flauta baja', 'Flauta contrabaja', 'Flauta dulce sopranino', 'Flauta dulce soprano', 'Flauta dulce alto', 'Flauta dulce tenor', 'Flauta dulce bajo', 'Flauta de Pan', 'Siringa griega', 'Quena andina', 'Bansuri india', 'Dizi china', 'Xiao china', 'Shakuhachi japonés', 'Ney turco', 'Ney árabe', 'Fujara eslovaca'] },
-  { family: 'Maderas', region: 'Europa / Global', era: '1600–actualidad', waveform: 'square', attack: 0.055, release: 0.45, filter: 6800, brightness: 66, names: ['Oboe', 'Oboe d’amore', 'Corno inglés', 'Oboe barítono', 'Heckelfón', 'Fagot', 'Contrafagot', 'Clarinete en si bemol', 'Clarinete en la', 'Clarinete piccolo', 'Clarinete alto', 'Clarinete bajo', 'Clarinete contrabajo', 'Clarinete basset', 'Corno di bassetto', 'Saxofón sopranino', 'Saxofón soprano', 'Saxofón alto', 'Saxofón tenor', 'Saxofón barítono'] },
-  { family: 'Metales', region: 'Europa / Global', era: 'Antigüedad–actualidad', waveform: 'sawtooth', attack: 0.045, release: 0.38, filter: 6100, brightness: 76, names: ['Trompeta en do', 'Trompeta en si bemol', 'Trompeta piccolo', 'Trompeta natural', 'Corneta', 'Fliscorno', 'Trombón tenor', 'Trombón alto', 'Trombón bajo', 'Trombón contrabajo', 'Trompa francesa', 'Trompa natural', 'Tuba tenor', 'Bombardino', 'Tuba bajo', 'Tuba contrabajo', 'Sousafón', 'Oficleido', 'Serpentón', 'Cornu romano'] },
-  { family: 'Vientos tradicionales', region: 'Global', era: 'Tradicional', waveform: 'square', attack: 0.035, release: 0.45, filter: 5800, brightness: 72, names: ['Gaita gallega', 'Gaita asturiana', 'Great Highland bagpipe', 'Uilleann pipes', 'Northumbrian smallpipes', 'Duduk armenio', 'Zurna', 'Shawm medieval', 'Crumhorn', 'Rauschpfeife', 'Bombarda bretona', 'Gralla catalana', 'Dolçaina valenciana', 'Tenora catalana', 'Alboka vasca', 'Sheng chino', 'Shō japonés', 'Suona china', 'Hulusi', 'Didgeridoo'] },
-  { family: 'Percusión afinada', region: 'Global', era: 'Antigüedad–actualidad', waveform: 'sine', attack: 0.002, release: 1.5, filter: 8800, brightness: 80, names: ['Timbales sinfónicos', 'Xilófono', 'Marimba', 'Vibráfono', 'Glockenspiel', 'Campanas tubulares', 'Lira de marcha', 'Celesta percutida', 'Steelpan tenor', 'Steelpan bajo', 'Handpan', 'Hang', 'Kalimba', 'Mbira', 'Balafón', 'Gamelán gong ageng', 'Gamelán bonang', 'Gamelán saron', 'Lithófono', 'Cristal Baschet'] },
-  { family: 'Tambores orquestales', region: 'Europa / Global', era: '1600–actualidad', waveform: 'sine', attack: 0.001, release: 0.6, filter: 3300, brightness: 54, names: ['Caja orquestal', 'Caja piccolo', 'Bombo sinfónico', 'Tom de concierto alto', 'Tom de concierto medio', 'Tom de concierto bajo', 'Rototom', 'Tambor tenor de marcha', 'Caja de marcha', 'Bombo de marcha', 'Pandereta orquestal', 'Pandero', 'Tamboril', 'Tabor medieval', 'Bodhrán irlandés', 'Davul', 'Tapan balcánico', 'Dhol indio', 'Nagara', 'Taiko ōdaiko'] },
-  { family: 'Baterías modernas', region: 'Global', era: '1900–actualidad', waveform: 'sine', attack: 0.001, release: 0.45, filter: 4900, brightness: 62, names: ['Bombo acústico 22', 'Bombo acústico 18 jazz', 'Caja maple', 'Caja brass', 'Caja piccolo', 'Tom rack 10', 'Tom rack 12', 'Floor tom 14', 'Floor tom 16', 'Hi-hat cerrado', 'Hi-hat abierto', 'Crash 16', 'Crash 18', 'Ride 20', 'Ride bell', 'China cymbal', 'Splash cymbal', 'Clap electrónico', 'Kit 808', 'Kit 909'] },
-  { family: 'Percusión latina', region: 'América Latina', era: 'Tradicional–actualidad', waveform: 'triangle', attack: 0.001, release: 0.5, filter: 6500, brightness: 67, names: ['Conga quinto', 'Conga', 'Tumba', 'Bongó macho', 'Bongó hembra', 'Timbal latino', 'Cajón flamenco', 'Cajón peruano', 'Claves', 'Güiro', 'Maracas', 'Cabasa', 'Agogô', 'Surdo', 'Repinique', 'Cuíca', 'Pandeiro brasileño', 'Shekere', 'Campana mambo', 'Cencerro salsa'] },
-  { family: 'Percusión mundial', region: 'Global', era: 'Tradicional', waveform: 'triangle', attack: 0.001, release: 0.55, filter: 6000, brightness: 64, names: ['Djembé', 'Dunun', 'Talking drum', 'Udu', 'Tabla dayan', 'Tabla bayan', 'Pakhawaj', 'Mridangam', 'Ghatam', 'Kanjira', 'Darbuka', 'Riqq', 'Frame drum', 'Daf persa', 'Doumbek', 'Cajita china', 'Mokugyo japonés', 'Temple blocks', 'Woodblock', 'Ocean drum'] },
-  { family: 'Coro y voces', region: 'Global', era: 'Universal', waveform: 'sawtooth', attack: 0.18, release: 1.4, filter: 4200, brightness: 56, names: ['Soprano lírica', 'Soprano dramática', 'Mezzosoprano', 'Contralto', 'Contratenor', 'Tenor lírico', 'Tenor dramático', 'Barítono', 'Bajo profundo', 'Coro femenino Ah', 'Coro masculino Oh', 'Coro mixto', 'Coro infantil', 'Coro gregoriano', 'Ensemble renacentista', 'Coro gospel', 'Voz susurrada', 'Voz etérea', 'Vocoder choir', 'Vocal formant synth'] },
-  { family: 'Sintetizadores analógicos', region: 'Global', era: '1960–actualidad', waveform: 'sawtooth', attack: 0.03, release: 0.8, filter: 3600, brightness: 69, names: ['Mono ladder lead', 'Mono acid lead', 'Dual oscillator brass', 'Poly analog warm', 'Poly analog bright', 'Analog string machine', 'Analog sync lead', 'Analog PWM pad', 'Analog pluck', 'Analog sequence', 'Subtractive bass', 'Resonant bass', 'Noise riser', 'Sample-and-hold motion', 'Ring mod bells', 'Cross-mod texture', 'Vintage ensemble', 'Unison supersaw', 'Analog drone', 'Modular west-coast voice'] },
-  { family: 'Sintetizadores digitales', region: 'Global', era: '1980–actualidad', waveform: 'sine', attack: 0.02, release: 1.2, filter: 7200, brightness: 82, names: ['FM electric piano', 'FM bell', 'FM brass', 'FM bass', 'Phase distortion lead', 'Vector synthesis pad', 'Wavetable glass', 'Wavetable growl', 'Additive organ', 'Additive shimmer', 'Physical model pluck', 'Physical model tube', 'Granular cloud', 'Granular choir', 'Spectral freeze', 'Resynthesis texture', 'Chiptune pulse', 'Chiptune triangle', 'Digital metallic', 'Digital evolving pad'] },
-  { family: 'Pads y atmósferas', region: 'Global', era: 'Actualidad', waveform: 'sawtooth', attack: 0.8, release: 3.5, filter: 4200, brightness: 58, names: ['Warm horizon', 'Glass cathedral', 'Polar night', 'Solar bloom', 'Oceanic drift', 'Forest breath', 'Nebula choir', 'Tape memory', 'Frozen strings', 'Velvet poly', 'Air vox', 'Distant brass', 'Cinematic rise', 'Cinematic fall', 'Dark matter', 'Luminous dust', 'Slow motion', 'Infinite fifths', 'Harmonic mist', 'Evolving constellation'] },
-  { family: 'Leads y plucks', region: 'Global', era: 'Actualidad', waveform: 'sawtooth', attack: 0.008, release: 0.55, filter: 6900, brightness: 84, names: ['Supersaw anthem', 'Trance pluck', 'Future bass chord', 'Neon mono lead', 'Portamento square', 'Laser lead', 'Formant lead', 'Sync scream', 'Resonant chirp', 'Crystal pluck', 'Marimba synth', 'Muted digital pluck', 'Harp synth', 'Koto synth', 'Bell pluck', 'Psychedelic lead', 'Retro arcade lead', 'Electro stab', 'Rave hoover', 'Hyperpop sparkle'] },
-  { family: 'Texturas experimentales', region: 'Global', era: 'Actualidad', waveform: 'triangle', attack: 0.2, release: 2.6, filter: 8000, brightness: 74, names: ['Tape scrape', 'Vinyl dust', 'Metal resonance', 'Prepared strings', 'Bowed glass', 'Waterphone', 'Thunder sheet', 'Spring tank strike', 'Feedback garden', 'Circuit bent toy', 'Radio fragments', 'Shortwave drift', 'Machine room', 'Data rain', 'Magnetic pulse', 'Microsound swarm', 'Stretched piano', 'Reversed orchestra', 'Harmonic sand', 'Quantum noise'] },
-  { family: 'Música antigua', region: 'Europa / Mediterráneo', era: 'Antigüedad–Barroco', waveform: 'triangle', attack: 0.025, release: 0.85, filter: 5200, brightness: 63, names: ['Aulos griego', 'Tibia romana', 'Bucina romana', 'Hydraulis', 'Címbalos antiguos', 'Sistro egipcio', 'Lira romana', 'Cornamusa medieval', 'Fídula medieval', 'Organistrum', 'Zanfona', 'Salterio medieval', 'Chirimía soprano', 'Chirimía tenor', 'Sacabuche', 'Cornetto renacentista', 'Cornamuse', 'Cromorno soprano', 'Cromorno bajo', 'Viola bastarda'] },
-  { family: 'Instrumentos ibéricos', region: 'Península Ibérica', era: 'Tradicional', waveform: 'triangle', attack: 0.012, release: 0.72, filter: 5500, brightness: 68, names: ['Txalaparta', 'Trikitixa', 'Txistu', 'Timple canario', 'Timple puertorriqueño', 'Cavaquinho', 'Flauta rociera', 'Tamboril rociero', 'Rabel cántabro', 'Rabel castellano', 'Gaita de boto', 'Chiflo aragonés', 'Acordeón trikitixa', 'Castañuelas', 'Botella de anís', 'Zambomba', 'Pandero cuadrado de Peñaparda', 'Tarrañuelas', 'Carajillo de nueces', 'Requinto aragonés'] },
-  { family: 'Asia oriental', region: 'China / Japón / Corea', era: 'Tradicional', waveform: 'triangle', attack: 0.02, release: 1.1, filter: 6500, brightness: 72, names: ['Shamisen', 'Sanshin', 'Biwa', 'Kokle', 'Yueqin', 'Ruan', 'Sanxian', 'Se chino', 'Yangqin', 'Taishōgoto', 'Kugo', 'Hichiriki', 'Ryūteki', 'Nōkan', 'Taepyeongso', 'Saenghwang', 'Piri coreano', 'Janggu', 'Buk coreano', 'Kkwaenggwari'] },
-  { family: 'India y Asia central', region: 'India / Asia central', era: 'Tradicional', waveform: 'sawtooth', attack: 0.03, release: 1.2, filter: 5600, brightness: 66, names: ['Sitar', 'Surbahar', 'Sarod', 'Veena Saraswati', 'Veena Rudra', 'Tanpura', 'Santoor indio', 'Swarmandal', 'Bulbul tarang', 'Ektara', 'Dotara', 'Sarangi nepalí', 'Rubab afgano', 'Dutar', 'Tar persa', 'Setar persa', 'Kobyz kazajo', 'Dombra kazaja', 'Komuz kirguís', 'Tembûr kurdo'] },
-  { family: 'América tradicional', region: 'América', era: 'Tradicional', waveform: 'triangle', attack: 0.018, release: 0.9, filter: 5800, brightness: 65, names: ['Charango', 'Ronroco', 'Cuatro venezolano', 'Cuatro puertorriqueño', 'Tres cubano', 'Jarana jarocha', 'Vihuela mexicana', 'Bajo sexto', 'Chapareque', 'Arpa mapuche', 'Kultrún', 'Teponaztli', 'Huehuetl', 'Ocarina andina', 'Antara', 'Tarka', 'Siku', 'Native American flute', 'Appalachian dulcimer', 'Banjo de cinco cuerdas'] },
-];
+const familyForProgram = (program: number) => families[Math.min(families.length - 1, Math.floor(program / 8))];
 
-const slugify = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
-
-const profileForFamily = (family: string): InstrumentProfile => {
-  if (family === 'Pianos y teclas') return 'hammered';
-  if (family === 'Órganos y armonios') return 'organ';
-  if (['Guitarras', 'Laúdes y pulsadas', 'Arpas y cítaras', 'India y Asia central', 'América tradicional'].includes(family)) return 'plucked';
-  if (family === 'Bajos') return 'bass';
-  if (family.includes('Cuerdas')) return 'bowed';
-  if (family === 'Flautas') return 'flute';
-  if (['Maderas', 'Vientos tradicionales', 'Música antigua', 'Instrumentos ibéricos', 'Asia oriental'].includes(family)) return 'reed';
-  if (family === 'Metales') return 'brass';
-  if (family === 'Percusión afinada') return 'mallet';
-  if (family.includes('Percusión') || family.includes('Tambores') || family.includes('Baterías')) return 'drum';
-  if (family === 'Coro y voces') return 'voice';
-  if (family === 'Sintetizadores analógicos' || family === 'Leads y plucks') return 'analog';
-  if (family === 'Sintetizadores digitales') return 'digital';
-  if (family === 'Pads y atmósferas') return 'pad';
-  return 'texture';
+const previewForProgram = (program: number, bank: number) => {
+  const group = Math.floor(program / 8);
+  const phrases: number[][] = [
+    [48, 55, 60, 64, 67, 72], [60, 64, 67, 72, 76], [48, 55, 60, 64], [52, 55, 59, 64, 67],
+    [36, 43, 48, 46], [55, 59, 62, 67], [48, 55, 60, 64], [48, 55, 60, 64, 67],
+    [55, 59, 62, 65], [72, 74, 76, 79, 81], [60, 63, 67, 70], [48, 55, 60, 67],
+    [48, 61, 67, 74], [60, 62, 65, 69, 72], [60, 64, 67, 72],
+  ];
+  const transpose = bank > 0 ? (bank % 3) - 1 : 0;
+  return phrases[Math.min(phrases.length - 1, group)].map((pitch) => pitch + transpose);
 };
 
-export const instruments: InstrumentPreset[] = groups.flatMap((group, groupIndex) =>
-  group.names.map((name, index) => ({
-    id: `${slugify(name)}-${groupIndex}-${index}`,
-    name,
-    family: group.family,
-    region: group.region,
-    era: group.era,
-    waveform: group.waveform,
-    attack: group.attack * (0.9 + (index % 4) * 0.07),
-    release: group.release * (0.88 + (index % 5) * 0.06),
-    filter: group.filter * (0.9 + (index % 3) * 0.08),
-    detune: index % 6 === 0 ? 5 : 0,
-    brightness: Math.min(100, group.brightness + ((index % 7) - 3) * 2),
-    profile: profileForFamily(group.family),
-    variation: (groupIndex * 20 + index) % 97,
-  })),
-);
+const slugify = (value: string) => value
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/(^-|-$)/g, '');
+
+export const instruments: InstrumentPreset[] = generalUserPresets.map((preset) => ({
+  id: `generaluser-${preset.bankMSB}-${preset.bankLSB}-${preset.program}-${slugify(preset.name)}`,
+  name: preset.name,
+  family: familyForProgram(preset.program),
+  sourcePreset: preset.name,
+  bankMSB: preset.bankMSB,
+  bankLSB: preset.bankLSB,
+  program: preset.program,
+  engine: 'soundfont',
+  source: 'GeneralUser GS 1.471',
+  license: 'GeneralUser GS License v2.0',
+  previewPitches: previewForProgram(preset.program, preset.bankMSB),
+}));
 
 export const instrumentById = new Map(instruments.map((instrument) => [instrument.id, instrument]));
-
 export const instrumentFamilies = Array.from(new Set(instruments.map((instrument) => instrument.family)));
-
-export const DEFAULT_INSTRUMENT_ID = instruments[0].id;
+export const DEFAULT_INSTRUMENT_ID = instruments.find((instrument) => instrument.bankMSB === 0 && instrument.program === 0)!.id;

@@ -1,0 +1,31 @@
+AUDITORIUM — THIRD-PARTY AUDIO NOTICES
+
+GeneralUser GS v1.471
+Author: S. Christian Collins
+Project: https://schristiancollins.com/generaluser.php
+Packaged source: https://github.com/ad-si/GeneralUser
+
+GeneralUser GS License v2.0
+
+License of the complete work
+You may use GeneralUser GS without restriction for your own music creation,
+private or commercial. This SoundFont bank is provided to the community free
+of charge. You may use it in software projects and modify the SoundFont bank or
+its packaging to suit your needs.
+
+License of contained samples
+GeneralUser GS inherits the usage rights of the samples contained within, all
+of which allow full use in music production, including the ability to make a
+profit from musical recordings created with GeneralUser GS. The upstream
+license notes that some freely available historical samples have incomplete
+origin records. The complete license is distributed with Auditorium at:
+./licenses/GeneralUser-GS-LICENSE.txt
+
+SpessaSynth Lib v4.3.x
+Copyright © Spessasus
+Licensed under the Apache License 2.0.
+Project: https://github.com/spessasus/spessasynth_lib
+License: https://www.apache.org/licenses/LICENSE-2.0
+Bundled license copy: ./licenses/SpessaSynth-Apache-2.0.txt
+
+Auditorium does not claim authorship or ownership of these third-party sounds.

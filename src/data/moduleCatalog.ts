@@ -50,8 +50,8 @@ export const moduleCatalog: ModuleDefinition[] = [
     params: [knob('gain', 'Ganancia', 70, 0, 150, 1, '%'), select('channel', 'Canal', '1–2', ['1', '2', '1–2', '3–4'])],
   },
   {
-    type: 'instrument', label: 'Instrumento', description: 'Motor interpretativo con más de 300 modelos instrumentales.', category: 'Instrumentos', color: '#ffca57', icon: 'Piano', inputs: 1, outputs: 1, source: true, wide: true,
-    params: [knob('expression', 'Expresión', 78, 0, 100, 1, '%'), knob('attack', 'Ataque', 18, 0, 100, 1, '%'), knob('release', 'Cola', 38, 0, 100, 1, '%'), ...sourceParams],
+    type: 'instrument', label: 'Instrumento', description: 'Reproductor polifónico de presets muestreados GeneralUser GS mediante AudioWorklet.', category: 'Instrumentos', color: '#ffca57', icon: 'Piano', inputs: 1, outputs: 1, source: true, wide: true,
+    params: [knob('expression', 'Expresión', 78, 0, 100, 1, '%'), knob('attack', 'Ataque', 50, 0, 100, 1, '%'), knob('release', 'Cola', 50, 0, 100, 1, '%'), ...sourceParams],
     tags: ['piano', 'guitarra', 'orquesta', 'mundo'],
   },
   {

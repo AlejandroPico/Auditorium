@@ -68,7 +68,7 @@ function ComposerLab({ node }: { node: StudioNode }) {
   return (
     <div className="composer-lab">
       <header className="composer-header">
-        <div><span className="instrument-avatar">{instrument?.name.slice(0, 2).toUpperCase() ?? 'AU'}</span><div><strong>{instrument?.name ?? node.data.label}</strong><small>{instrument ? `${instrument.family} · ${instrument.region} · modelo sintetizado` : 'Motor polifónico Auditorium'}</small></div></div>
+        <div><span className="instrument-avatar">{instrument?.name.slice(0, 2).toUpperCase() ?? 'AU'}</span><div><strong>{instrument?.name ?? node.data.label}</strong><small>{instrument ? `${instrument.family} · ${instrument.source} · preset muestreado ${instrument.bankMSB}:${instrument.program}` : 'Motor polifónico Auditorium'}</small></div></div>
         <nav><button className={mode === 'roll' ? 'active' : ''} onClick={() => setMode('roll')}>Piano roll</button><button className={mode === 'score' ? 'active' : ''} onClick={() => setMode('score')}>Partitura</button></nav>
       </header>
       <div className="playable-keyboard">

@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { instruments } from './instruments';
 import { moduleCatalog } from './moduleCatalog';
-import { getInstrumentPreviewPattern } from '../audio/AudioEngine';
 
 describe('catálogo de Auditorium', () => {
-  it('ofrece un repertorio instrumental muy superior al mínimo de 300', () => {
-    expect(instruments.length).toBeGreaterThanOrEqual(300);
+  it('solo publica los 201 presets melódicos y acústicamente únicos de GeneralUser GS', () => {
+    expect(instruments).toHaveLength(201);
     expect(new Set(instruments.map((instrument) => instrument.id)).size).toBe(instruments.length);
+    expect(new Set(instruments.map((instrument) => `${instrument.bankMSB}:${instrument.bankLSB}:${instrument.program}`)).size).toBe(instruments.length);
+    expect(instruments.every((instrument) => instrument.engine === 'soundfont' && instrument.source === 'GeneralUser GS 1.471')).toBe(true);
   });
 
   it('incluye fuentes, procesado, mezcla, análisis y enrutamiento', () => {
@@ -21,11 +22,13 @@ describe('catálogo de Auditorium', () => {
     expect(new Set(moduleCatalog.map((module) => module.type)).size).toBe(moduleCatalog.length);
   });
 
-  it('asigna identidad tímbrica y frases de muestra distintas a las familias', () => {
-    const profiles = new Set(instruments.map((instrument) => instrument.profile));
-    const phrases = new Set(instruments.map((instrument) => getInstrumentPreviewPattern(instrument).join(',')));
-    expect(profiles.size).toBeGreaterThanOrEqual(12);
-    expect(phrases.size).toBeGreaterThanOrEqual(12);
-    expect(instruments.every((instrument) => Number.isFinite(instrument.variation))).toBe(true);
+  it('mantiene procedencia, licencia y registro de muestra para cada preset', () => {
+    expect(new Set(instruments.map((instrument) => instrument.family)).size).toBe(15);
+    expect(instruments.every((instrument) => instrument.license === 'GeneralUser GS License v2.0')).toBe(true);
+    expect(instruments.every((instrument) => instrument.previewPitches.length >= 4)).toBe(true);
+    expect(instruments.some((instrument) => instrument.name === 'Stereo Grand')).toBe(true);
+    expect(instruments.some((instrument) => instrument.name === 'Nylon Guitar')).toBe(true);
+    expect(instruments.some((instrument) => instrument.name === 'Shakuhachi')).toBe(true);
+    expect(instruments.some((instrument) => instrument.name === 'Sitar')).toBe(true);
   });
 });

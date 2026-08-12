@@ -9,7 +9,7 @@ import {
   type XYPosition,
 } from '@xyflow/react';
 import { create } from 'zustand';
-import { DEFAULT_INSTRUMENT_ID } from '../data/instruments';
+import { DEFAULT_INSTRUMENT_ID, instrumentById, instruments } from '../data/instruments';
 import { defaultParams, getModuleDefinition } from '../data/moduleCatalog';
 import type {
   AddModuleOptions,
@@ -85,7 +85,7 @@ export const createInitialProject = (): AuditoriumProject => {
   const now = new Date().toISOString();
   const deck = makeNode('turntable', { x: 20, y: 50 }, { label: 'Deck A' }, 'deck-a');
   const dynamics = makeNode('multiband', { x: 292, y: 28 }, {}, 'polarity-4b');
-  const instrument = makeNode('instrument', { x: 20, y: 320 }, { label: 'Piano de concierto' }, 'instrument-main');
+  const instrument = makeNode('instrument', { x: 20, y: 320 }, { label: instrumentById.get(DEFAULT_INSTRUMENT_ID)?.name ?? 'Stereo Grand' }, 'instrument-main');
   const reverb = makeNode('reverb', { x: 292, y: 326 }, {}, 'reverb-main');
   const drums = makeNode('drumMachine', { x: 20, y: 570 }, {}, 'drums-main');
   const mixer = makeNode('mixer', { x: 580, y: 220 }, { label: 'Bus musical' }, 'mixer-main');
@@ -190,6 +190,30 @@ interface StudioState {
 }
 
 const cloneProject = (project: AuditoriumProject): AuditoriumProject => structuredClone(project);
+
+const normalizeInstrumentCatalog = (project: AuditoriumProject): AuditoriumProject => ({
+  ...project,
+  workspaces: Object.fromEntries(Object.entries(project.workspaces).map(([workspaceId, workspace]) => [workspaceId, {
+    ...workspace,
+    nodes: workspace.nodes.map((node) => {
+      if (node.data.moduleType !== 'instrument' || (node.data.instrumentId && instrumentById.has(node.data.instrumentId))) return node;
+      const label = String(node.data.label).toLocaleLowerCase('es');
+      const verified = label.includes('piano de concierto')
+        ? instrumentById.get(DEFAULT_INSTRUMENT_ID)
+        : label.includes('piano de cola brillante')
+          ? instruments.find((instrument) => instrument.name === 'Bright Grand')
+          : undefined;
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          instrumentId: verified?.id,
+          label: verified?.name ?? `${String(node.data.label).replace(/ · sin muestra verificada$/, '')} · sin muestra verificada`,
+        },
+      };
+    }),
+  }])),
+});
 
 const updateTimestamp = (project: AuditoriumProject) => ({
   ...project,
@@ -401,7 +425,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   setStatus: (status) => set({ status }),
 
   loadProject: (project) => set({
-    project,
+    project: normalizeInstrumentCatalog(project),
     activeWorkspaceId: project.rootWorkspaceId,
     selectedNodeId: null,
     detailNodeId: null,

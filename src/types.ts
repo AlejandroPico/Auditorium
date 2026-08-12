@@ -111,34 +111,15 @@ export interface InstrumentPreset {
   id: string;
   name: string;
   family: string;
-  region: string;
-  era: string;
-  waveform: OscillatorType;
-  attack: number;
-  release: number;
-  filter: number;
-  detune?: number;
-  brightness: number;
-  profile: InstrumentProfile;
-  variation: number;
+  sourcePreset: string;
+  bankMSB: number;
+  bankLSB: number;
+  program: number;
+  engine: 'soundfont';
+  source: 'GeneralUser GS 1.471';
+  license: 'GeneralUser GS License v2.0';
+  previewPitches: number[];
 }
-
-export type InstrumentProfile =
-  | 'hammered'
-  | 'organ'
-  | 'plucked'
-  | 'bass'
-  | 'bowed'
-  | 'flute'
-  | 'reed'
-  | 'brass'
-  | 'mallet'
-  | 'drum'
-  | 'voice'
-  | 'analog'
-  | 'digital'
-  | 'pad'
-  | 'texture';
 
 export interface AddModuleOptions {
   definition: ModuleDefinition;

@@ -1,5 +1,13 @@
-const CACHE = 'auditorium-v1';
-const CORE = ['./', './index.html', './favicon.svg', './manifest.webmanifest'];
+const CACHE = 'auditorium-v2-soundfont';
+const CORE = [
+  './',
+  './index.html',
+  './favicon.svg',
+  './manifest.webmanifest',
+  './THIRD_PARTY_NOTICES.txt',
+  './licenses/GeneralUser-GS-LICENSE.txt',
+  './licenses/SpessaSynth-Apache-2.0.txt',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(CORE)));
