@@ -62,10 +62,18 @@ export default function App() {
         event.preventDefault();
         try { loadProject(await openProjectPicker()); } catch (error) { setStatus(error instanceof Error ? error.message : 'No se pudo abrir'); }
       }
-      if ((event.key === 'Delete' || event.key === 'Backspace') && !typing) useStudioStore.getState().removeSelected();
+      if ((event.key === 'Delete' || event.key === 'Backspace') && !typing) {
+        const state = useStudioStore.getState();
+        if (state.selectedEdgeId) state.removeEdge(state.selectedEdgeId);
+        else state.removeSelected();
+      }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !event.shiftKey) { event.preventDefault(); useStudioStore.getState().undo(); }
       if ((event.ctrlKey || event.metaKey) && (event.key.toLowerCase() === 'y' || (event.shiftKey && event.key.toLowerCase() === 'z'))) { event.preventDefault(); useStudioStore.getState().redo(); }
-      if (event.key === 'Escape') useStudioStore.getState().closeDetail();
+      if (event.key === 'Escape') {
+        const state = useStudioStore.getState();
+        state.closeDetail();
+        state.selectEdge(null);
+      }
     };
     window.addEventListener('keydown', keydown);
     return () => window.removeEventListener('keydown', keydown);

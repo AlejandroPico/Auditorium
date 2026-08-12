@@ -104,7 +104,7 @@ function SettingsMenu({ close }: { close: () => void }) {
       <div className="settings-row"><span><b>Frecuencia</b><small>Motor de audio</small></span><strong>{audioEngine.audioContext?.sampleRate ? `${audioEngine.audioContext.sampleRate / 1000} kHz` : '48 kHz'}</strong></div>
       <div className="settings-row"><span><b>Precisión interna</b><small>Grafo y sumadores</small></span><strong>32-bit float</strong></div>
       <label className="settings-toggle"><span><b>Modo actuación</b><small>Oculta paneles, conserva controles</small></span><input type="checkbox" checked={performanceMode} onChange={(event) => setPerformanceMode(event.target.checked)} /><i /></label>
-      <label className="settings-toggle"><span><b>Minimapa</b><small>Vista general navegable del lienzo</small></span><input type="checkbox" checked={showMinimap} onChange={(event) => setShowMinimap(event.target.checked)} /><i /></label>
+      <label className="settings-toggle"><span><b>Minimapa</b><small>Oculto al iniciar · vista general navegable</small></span><input type="checkbox" checked={showMinimap} onChange={(event) => setShowMinimap(event.target.checked)} /><i /></label>
       <button className="device-test" onClick={async () => { try { await audioEngine.init(); setStatus(`Motor activo · ${audioEngine.audioContext?.sampleRate ?? 48000} Hz · latencia interactiva`); } catch (error) { setStatus(String(error)); } }}><Zap size={14} />Probar motor de audio</button>
       <footer><Gauge size={13} />Latencia estimada por el sistema: {audioEngine.audioContext ? `${((audioEngine.audioContext.baseLatency ?? 0.006) * 1000).toFixed(1)} ms` : '—'}</footer>
     </div>

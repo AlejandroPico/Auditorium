@@ -220,8 +220,6 @@ input[type="range"]::-webkit-slider-thumb { appearance: none; width: 10px; heigh
 .studio-canvas { position: relative; flex: 1; min-height: 0; overflow: hidden; background: radial-gradient(circle at 48% 42%, rgba(29,41,53,.28), transparent 52%), #080b10; }
 .studio-canvas .react-flow { background: transparent; }
 .studio-canvas .react-flow__pane { cursor: grab; }.studio-canvas .react-flow__pane:active { cursor: grabbing; }
-.studio-canvas .react-flow__minimap { right: 9px; bottom: 9px; width: 132px; height: 78px; overflow: hidden; border: 1px solid #303947; border-radius: 7px; background: #0c1016; box-shadow: 0 7px 20px #0008; }
-.studio-canvas .react-flow__minimap-svg { width: 100%; height: 100%; display: block; overflow: hidden; border-radius: inherit; }
 .canvas-breadcrumbs { position: absolute; z-index: 9; top: 8px; left: 10px; right: 10px; height: 27px; display: flex; align-items: center; gap: 2px; padding: 0 6px; pointer-events: none; }
 .canvas-breadcrumbs > div { display: flex; align-items: center; gap: 2px; pointer-events: auto; }
 .canvas-breadcrumbs button { height: 23px; padding: 0 8px; border: 1px solid transparent; border-radius: 5px; background: rgba(15,20,27,.84); color: #73808d; cursor: pointer; backdrop-filter: blur(8px); font-size: 7px; font-weight: 700; }
@@ -258,6 +256,9 @@ input[type="range"]::-webkit-slider-thumb { appearance: none; width: 10px; heigh
 .input-handle { left: -6px !important; }.output-handle { right: -6px !important; }
 .node-toolbar { display: flex; gap: 3px; padding: 3px; border: 1px solid #303a47; border-radius: 5px; background: #12171f; box-shadow: 0 5px 12px #0008; }.node-toolbar button { width: 23px; height: 20px; display: grid; place-items: center; border: 0; border-radius: 3px; background: transparent; color: var(--muted); cursor: pointer; }.node-toolbar button:hover { color: white; background: #252e39; }
 .react-flow__edge.animated path { animation-duration: 1.3s; }.react-flow__edge.selected path { stroke: #fff !important; filter: drop-shadow(0 0 5px var(--cyan)); }
+.edge-selection-toolbar { position: absolute; z-index: 12; left: 50%; bottom: 12px; display: flex; align-items: center; gap: 10px; padding: 5px 5px 5px 10px; border: 1px solid #3c4a59; border-radius: 8px; background: rgba(13,18,25,.96); box-shadow: 0 10px 28px #000a, 0 0 0 1px rgba(111,212,255,.05); transform: translateX(-50%); }
+.edge-selection-toolbar > span { display: flex; align-items: center; gap: 6px; color: #8f9da9; white-space: nowrap; font-size: 7px; }.edge-selection-toolbar > span svg { color: var(--cyan); }.edge-selection-toolbar > span b { color: #c9d3dc; font-size: 7.5px; }
+.edge-selection-toolbar button { height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 7px; border: 1px solid rgba(255,101,104,.34); border-radius: 5px; background: rgba(255,101,104,.08); color: #ff8b8d; cursor: pointer; font-size: 7px; }.edge-selection-toolbar button:hover { border-color: rgba(255,101,104,.62); background: rgba(255,101,104,.16); color: #ffd5d5; }.edge-selection-toolbar kbd { padding: 2px 4px; border: 1px solid #3a4652; border-radius: 3px; background: #151b23; color: #72808d; font: 6px monospace; }
 .canvas-help { position: absolute; z-index: 8; left: 42px; bottom: 5px; height: 19px; display: flex; align-items: center; gap: 6px; padding: 0 7px; border-radius: 4px; background: rgba(11,15,20,.78); color: #596572; pointer-events: none; font-size: 6.5px; }
 .fit-canvas-button { position: absolute; z-index: 8; left: 8px; bottom: 5px; width: 28px; height: 20px; display: grid; place-items: center; border: 1px solid #2b3540; border-radius: 4px; background: #121820; color: #6d7884; cursor: pointer; }.fit-canvas-button:hover { color: var(--cyan); }
 .selection-status { position: absolute; z-index: 7; right: 149px; bottom: 5px; padding: 4px 8px; border-radius: 4px; background: rgba(11,15,20,.78); color: #5e6a76; font-size: 6.5px; pointer-events: none; }
@@ -357,9 +358,10 @@ input[type="range"]::-webkit-slider-thumb { appearance: none; width: 10px; heigh
 .node-param-switch span, .node-param-select span { display: none; }
 .node-param-grid.is-detailed .node-param-switch span, .node-param-grid.is-detailed .node-param-select span { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Accurate, contained minimap */
-.studio-canvas .react-flow__minimap { right: 10px; bottom: 9px; width: 164px; height: 102px; border: 1px solid #3a4654; border-radius: 8px; background: #080c12; box-shadow: 0 8px 26px #000b, inset 0 0 0 1px rgba(255,255,255,.025); contain: paint; }
-.studio-canvas .react-flow__minimap-svg { width: 100% !important; height: 100% !important; overflow: hidden !important; }
+/* Minimap geometry: the CSS box and React Flow's internal viewport share the exact same size. */
+.studio-canvas .auditorium-minimap { right: 10px; bottom: 10px; width: 180px; height: 112px; padding: 0; overflow: hidden; border: 1px solid #3b4856; border-radius: 10px; background: #080c12; box-shadow: 0 10px 28px #000b; contain: paint; }
+.studio-canvas .auditorium-minimap .react-flow__minimap-svg { display: block; width: 180px; height: 112px; overflow: hidden; border-radius: 9px; }
+.studio-canvas .auditorium-minimap .react-flow__minimap-node { opacity: .88; }
 
 /* Resizable adaptive editors */
 .floating-editor { width: min(1020px, calc(100vw - 48px)); height: min(760px, calc(100vh - 66px)); min-width: min(430px, calc(100vw - 16px)); min-height: min(330px, calc(100vh - 58px)); max-width: calc(100vw - 8px); max-height: calc(100vh - 50px); resize: both; overflow: hidden; container-type: inline-size; }

@@ -7,7 +7,7 @@ import {
   useReactFlow,
   type NodeTypes,
 } from '@xyflow/react';
-import { ChevronRight } from 'lucide-react';
+import { Cable, ChevronRight, Trash2 } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 import { instrumentById } from '../data/instruments';
 import { getModuleDefinition } from '../data/moduleCatalog';
@@ -24,7 +24,10 @@ function CanvasInner() {
   const onNodesChange = useStudioStore((state) => state.onNodesChange);
   const onEdgesChange = useStudioStore((state) => state.onEdgesChange);
   const onConnect = useStudioStore((state) => state.onConnect);
+  const selectedEdgeId = useStudioStore((state) => state.selectedEdgeId);
   const selectNode = useStudioStore((state) => state.selectNode);
+  const selectEdge = useStudioStore((state) => state.selectEdge);
+  const removeEdge = useStudioStore((state) => state.removeEdge);
   const openNode = useStudioStore((state) => state.openNode);
   const addModule = useStudioStore((state) => state.addModule);
   const enterWorkspace = useStudioStore((state) => state.enterWorkspace);
@@ -77,6 +80,7 @@ function CanvasInner() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={(_, node) => selectNode(node.id)}
+        onEdgeClick={(event, edge) => { event.stopPropagation(); selectEdge(edge.id); }}
         onNodeDoubleClick={(_, node) => openNode(node.id)}
         onPaneClick={() => selectNode(null)}
         onDrop={handleDrop}
@@ -98,19 +102,31 @@ function CanvasInner() {
       >
         <Background variant={BackgroundVariant.Dots} gap={18} size={1.1} color="#27313e" />
         {showMinimap && <MiniMap
+          className="auditorium-minimap"
           position="bottom-right"
+          style={{ width: 180, height: 112 }}
+          bgColor="#080c12"
           nodeColor={(node) => String(node.data.color ?? '#718096')}
           nodeStrokeColor={(node) => String(node.data.color ?? '#718096')}
-          nodeStrokeWidth={2}
-          nodeBorderRadius={4}
-          maskColor="rgba(4, 6, 10, .74)"
-          maskStrokeColor="rgba(111, 212, 255, .55)"
-          maskStrokeWidth={1.5}
+          nodeStrokeWidth={1.4}
+          nodeBorderRadius={5}
+          maskColor="rgba(4, 7, 11, .68)"
+          maskStrokeColor="rgba(111, 212, 255, .72)"
+          maskStrokeWidth={1}
+          offsetScale={9}
           pannable
           zoomable
           ariaLabel="Mapa general del lienzo"
         />}
       </ReactFlow>
+      {selectedEdgeId && (
+        <div className="edge-selection-toolbar" role="status">
+          <span><Cable size={14} /><b>Conexión seleccionada</b></span>
+          <button onClick={() => removeEdge(selectedEdgeId)} title="Eliminar esta conexión">
+            <Trash2 size={14} /><span>Eliminar conexión</span><kbd>Supr</kbd>
+          </button>
+        </div>
+      )}
       {!workspace.nodes.length && (
         <div className="canvas-empty">
           <h3>Este escenario está vacío</h3>

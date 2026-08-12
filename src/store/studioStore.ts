@@ -142,6 +142,7 @@ interface StudioState {
   project: AuditoriumProject;
   activeWorkspaceId: string;
   selectedNodeId: string | null;
+  selectedEdgeId: string | null;
   isPlaying: boolean;
   isRecording: boolean;
   performanceMode: boolean;
@@ -160,8 +161,10 @@ interface StudioState {
   onConnect: (connection: Connection) => void;
   addModule: (options: AddModuleOptions) => string;
   removeSelected: () => void;
+  removeEdge: (edgeId: string) => void;
   duplicateSelected: () => void;
   selectNode: (nodeId: string | null) => void;
+  selectEdge: (edgeId: string | null) => void;
   updateNodeParam: (nodeId: string, key: string, value: number | string | boolean) => void;
   updateNodeData: (nodeId: string, data: Partial<ModuleData>) => void;
   toggleNodeFlag: (nodeId: string, key: 'bypass' | 'solo' | 'mute') => void;
@@ -247,10 +250,11 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   project: createInitialProject(),
   activeWorkspaceId: 'root',
   selectedNodeId: null,
+  selectedEdgeId: null,
   isPlaying: false,
   isRecording: false,
   performanceMode: false,
-  showMinimap: true,
+  showMinimap: false,
   leftOpen: true,
   rightOpen: true,
   bottomOpen: true,
@@ -323,6 +327,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       return {
         project,
         selectedNodeId: nodeId,
+        selectedEdgeId: null,
         historyPast: [...state.historyPast.slice(-39), { project: cloneProject(state.project), activeWorkspaceId: state.activeWorkspaceId }],
         historyFuture: [],
         status: `${definition.label} añadido al escenario`,
@@ -352,6 +357,20 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     };
   }),
 
+  removeEdge: (edgeId) => set((state) => {
+    const workspace = getActiveWorkspace(state);
+    if (!workspace.edges.some((edge) => edge.id === edgeId)) return state;
+    const result = mutateWorkspace(state, (current) => ({
+      ...current,
+      edges: current.edges.filter((edge) => edge.id !== edgeId),
+    }), true);
+    return {
+      ...result,
+      selectedEdgeId: null,
+      status: 'Conexión eliminada · los módulos se conservan',
+    };
+  }),
+
   duplicateSelected: () => {
     const state = get();
     if (!state.selectedNodeId) return;
@@ -362,7 +381,8 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     get().updateNodeData(newId, { ...structuredClone(node.data), workspaceId: undefined, label: `${node.data.label} copia` });
   },
 
-  selectNode: (nodeId) => set({ selectedNodeId: nodeId }),
+  selectNode: (nodeId) => set({ selectedNodeId: nodeId, selectedEdgeId: null }),
+  selectEdge: (edgeId) => set({ selectedEdgeId: edgeId, selectedNodeId: null }),
 
   updateNodeParam: (nodeId, key, value) => set((state) => mutateWorkspace(state, (workspace) => ({
     ...workspace,
@@ -387,13 +407,13 @@ export const useStudioStore = create<StudioState>((set, get) => ({
 
   enterWorkspace: (workspaceId) => {
     if (!get().project.workspaces[workspaceId]) return;
-    set({ activeWorkspaceId: workspaceId, selectedNodeId: null, detailNodeId: null, status: 'Cápsula abierta' });
+    set({ activeWorkspaceId: workspaceId, selectedNodeId: null, selectedEdgeId: null, detailNodeId: null, status: 'Cápsula abierta' });
   },
 
   leaveWorkspace: () => set((state) => {
     const current = state.project.workspaces[state.activeWorkspaceId];
     return current.parentWorkspaceId
-      ? { activeWorkspaceId: current.parentWorkspaceId, selectedNodeId: current.parentNodeId ?? null, detailNodeId: null, status: 'Nivel superior' }
+      ? { activeWorkspaceId: current.parentWorkspaceId, selectedNodeId: current.parentNodeId ?? null, selectedEdgeId: null, detailNodeId: null, status: 'Nivel superior' }
       : state;
   }),
 
@@ -428,6 +448,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     project: normalizeInstrumentCatalog(project),
     activeWorkspaceId: project.rootWorkspaceId,
     selectedNodeId: null,
+    selectedEdgeId: null,
     detailNodeId: null,
     isPlaying: false,
     isRecording: false,
@@ -440,6 +461,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     project: createInitialProject(),
     activeWorkspaceId: 'root',
     selectedNodeId: null,
+    selectedEdgeId: null,
     detailNodeId: null,
     isPlaying: false,
     isRecording: false,
@@ -455,6 +477,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       project: previous.project,
       activeWorkspaceId: previous.activeWorkspaceId,
       selectedNodeId: null,
+      selectedEdgeId: null,
       historyPast: state.historyPast.slice(0, -1),
       historyFuture: [{ project: cloneProject(state.project), activeWorkspaceId: state.activeWorkspaceId }, ...state.historyFuture.slice(0, 39)],
       status: 'Acción deshecha',
@@ -468,6 +491,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       project: next.project,
       activeWorkspaceId: next.activeWorkspaceId,
       selectedNodeId: null,
+      selectedEdgeId: null,
       historyPast: [...state.historyPast.slice(-39), { project: cloneProject(state.project), activeWorkspaceId: state.activeWorkspaceId }],
       historyFuture: state.historyFuture.slice(1),
       status: 'Acción rehecha',
